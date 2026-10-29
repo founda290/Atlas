@@ -9,3 +9,37 @@
 @media(max-width:560px){:root{--container:calc(100% - 28px)}.header-inner{min-height:84px}.site-header .menu-control{width:52px;height:52px}.hero-copy{padding:72px 0 55px}.hero h1{font-size:clamp(50px,14vw,73px)}.hero-lede{font-size:17px}.hero-actions{flex-direction:column;align-items:stretch;margin-top:28px}.hero-actions .button-skeleton{width:100%}.trust{padding-top:23px}.principles{align-items:flex-start;font-size:13px;line-height:1.45}.principle-note{font-size:12px}.section{padding:73px 0}.section h2{font-size:42px}.preview-section{padding-top:45px}.preview-header{padding:0 14px}.preview-status{font-size:10px}.preview-body{display:block;min-height:0}.preview-files{display:none}.preview-editor{min-height:365px;border-right:0}.terminal-panel{margin-top:76px}.feature-grid,.workflow-grid,.integration-grid,.placeholder-grid{grid-template-columns:1fr}.feature-card{min-height:205px}.workflow-grid{display:flex;flex-direction:column;gap:32px}.workflow-step{min-height:220px}.footer-links{grid-template-columns:repeat(2,1fr);gap:28px}.footer-base{display:block}.footer-base span{display:block;margin-top:8px}.page-heading{padding:72px 0 45px}.page-heading h1{font-size:51px}.page-heading>p:last-child{font-size:17px}.page-placeholder{padding:42px 0}.placeholder-grid{margin-top:34px}.cta-box{padding:30px 24px}.app-header{padding:0 14px}.app-header-context strong{font-size:12px}.app-header-context span{font-size:9px}.app-shell .page-heading{padding:48px 20px 30px}.app-shell .page-heading h1{font-size:43px}.dashboard-grid,.app-content-grid,.workspace-layout{display:block;padding:18px 20px}.work-panel{margin-bottom:12px}.workspace-files{display:none}.agent-panel,.terminal-work-panel,.changes-panel{margin-top:12px}.app-shell .button-skeleton{min-height:44px}.footer-top .wordmark{font-size:19px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}
 :focus-visible{outline:3px solid var(--public-red);outline-offset:3px}.app-shell :focus-visible{outline-color:var(--app-accent)}
+
+/* Motion and fixed navigation layer */
+.site-header{position:fixed;top:0;left:0;right:0;z-index:50;border-bottom:1px solid transparent;backdrop-filter:blur(14px);background:color-mix(in srgb,var(--public-bg) 88%,transparent);animation:atlas-header-in .7s ease both}
+.site-header + main{padding-top:92px}
+.wordmark,.desktop-nav a,.sign-in,.atlas-mark,.integration-card,.feature-card,.workflow-step,.footer-links a{transition:transform .35s cubic-bezier(.2,.75,.25,1),color .25s ease,background-color .35s ease,border-color .35s ease}
+.wordmark:hover{transform:translateY(-2px)}
+.atlas-mark{animation:atlas-mark-breathe 5s ease-in-out infinite}
+.desktop-nav a:hover{transform:translateY(-2px)}
+.feature-card:hover,.integration-card:hover{transform:translateY(-6px)}
+.hero-copy{animation:atlas-rise .8s .08s cubic-bezier(.2,.75,.25,1) both}
+.trust{animation:atlas-rise .8s .2s cubic-bezier(.2,.75,.25,1) both}
+.preview-section .product-preview{animation:atlas-rise .9s .12s cubic-bezier(.2,.75,.25,1) both}
+.section:not(.preview-section) .page-container{animation:atlas-rise .8s .08s cubic-bezier(.2,.75,.25,1) both}
+.feature-card:nth-child(2),.workflow-step:nth-child(2),.integration-card:nth-child(2){animation-delay:.08s}
+.feature-card:nth-child(3),.workflow-step:nth-child(3),.integration-card:nth-child(3){animation-delay:.16s}
+.feature-card:nth-child(4),.workflow-step:nth-child(4),.integration-card:nth-child(4){animation-delay:.24s}
+.feature-card:nth-child(5),.integration-card:nth-child(5){animation-delay:.32s}
+.feature-card:nth-child(6){animation-delay:.4s}
+.footer-top{animation:atlas-rise .8s .1s cubic-bezier(.2,.75,.25,1) both}
+.cta-box{animation:atlas-rise .8s .1s cubic-bezier(.2,.75,.25,1) both}
+.site-footer{animation:atlas-rise .8s .12s cubic-bezier(.2,.75,.25,1) both}
+.app-shell .app-header{position:fixed;top:0;left:242px;right:0;z-index:25;animation:atlas-header-in .6s ease both}
+.app-shell .app-main{padding-top:64px}
+.app-shell .app-sidebar{animation:atlas-sidebar-in .7s cubic-bezier(.2,.75,.25,1) both}
+.app-shell .page-heading,.app-shell .work-panel{animation:atlas-rise .7s .08s cubic-bezier(.2,.75,.25,1) both}
+.app-shell .work-panel:nth-child(2){animation-delay:.08s}.app-shell .work-panel:nth-child(3){animation-delay:.16s}.app-shell .work-panel:nth-child(4){animation-delay:.24s}
+.mobile-nav{will-change:transform}
+@keyframes atlas-rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes atlas-header-in{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes atlas-sidebar-in{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}
+@keyframes atlas-slide-right{from{opacity:0;transform:translateX(105%)}to{opacity:1;transform:translateX(0)}}
+@keyframes atlas-mark-breathe{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-3deg)}}
+@media(max-width:900px){.site-header + main{padding-top:84px}.mobile-nav{position:fixed;top:84px;right:0;left:auto;width:min(360px,calc(100% - 24px));height:calc(100vh - 84px);overflow:auto;border-radius:18px 0 0 18px;box-shadow:-25px 0 65px rgba(23,24,22,.18);animation:atlas-slide-right .75s cubic-bezier(.2,.75,.25,1) both}.app-shell .app-header{left:0}.app-shell .app-main{padding-top:64px}}
+@media(prefers-reduced-motion:reduce){.atlas-mark,.hero-copy,.trust,.preview-section .product-preview,.section:not(.preview-section) .page-container,.feature-card,.workflow-step,.integration-card,.footer-top,.cta-box,.site-footer,.app-shell .app-header,.app-shell .app-sidebar,.app-shell .page-heading,.app-shell .work-panel,.site-header,.mobile-nav{animation:none!important;transform:none!important}.wordmark,.desktop-nav a,.sign-in,.atlas-mark,.integration-card,.feature-card,.workflow-step,.footer-links a{transition:none!important}}
