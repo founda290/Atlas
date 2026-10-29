@@ -14,7 +14,6 @@ Atlas is a Phase 0 structural scaffold for a browser-first AI coding agent power
 - `src/App.tsx` contains the route map, landing-page hierarchy, public placeholders, and authenticated page composition.
 - `src/components.tsx` contains shared site navigation, skeleton primitives, feature/integration cards, product preview, and application shell components.
 - `src/styles.css` contains neutral structural tokens and mobile-first responsive rules.
-- `public/manus-routes.json` declares the complete page route set for inspection.
 
 ## Commands
 
