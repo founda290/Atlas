@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto'
 import { readdir, lstat } from 'node:fs/promises'
 import path from 'node:path'
 import { WorkspaceGuard, type AgentRuntime } from './runtime.js'
+import { isSensitivePath, readWorkspaceFile, WorkspaceFileError } from './workspace-files.js'
+import { filterRuntimeDiffs } from './session-diff.js'
 interface Session {
   id: string
   runtimeId: string
@@ -76,13 +78,7 @@ export function createAtlasServer(runtime: AgentRuntime, guard: WorkspaceGuard) 
     const files: Array<{ path: string; kind: string; bytes: number }> = []
     async function walk(directory: string) {
       for (const name of await readdir(directory)) {
-        if (
-          name === '.git' ||
-          name === 'node_modules' ||
-          name === '.env' ||
-          name.startsWith('.env.')
-        )
-          continue
+        if (isSensitivePath(name)) continue
         const absolute = path.join(directory, name)
         const info = await lstat(absolute)
         // Do not traverse symlinks outside the configured directory or loop through cycles.
@@ -193,6 +189,23 @@ export function createAtlasServer(runtime: AgentRuntime, guard: WorkspaceGuard) 
           requestId,
         )
       }
+      const diff = url.pathname.match(/^\/api\/v1\/sessions\/([^/]+)\/diff$/)
+      if (diff && req.method === 'GET') {
+        const session = sessionFor(diff[1])
+        if (!session) return error(res, 404, 'Session not found', requestId)
+        const result = filterRuntimeDiffs(await runtime.diff(session.runtimeId))
+        return json(res, 200, { sessionId: session.id, ...result }, requestId)
+      }
+      const file = url.pathname.match(/^\/api\/v1\/workspaces\/([^/]+)\/file$/)
+      if (file && req.method === 'GET') {
+        if (file[1] !== guard.id) return error(res, 404, 'Workspace not found', requestId)
+        return json(
+          res,
+          200,
+          await readWorkspaceFile(guard, url.searchParams.get('path') ?? ''),
+          requestId,
+        )
+      }
       const events = url.pathname.match(/^\/api\/v1\/sessions\/([^/]+)\/events$/)
       if (events && req.method === 'GET') {
         const session = sessionFor(events[1])
@@ -266,8 +279,12 @@ export function createAtlasServer(runtime: AgentRuntime, guard: WorkspaceGuard) 
     } catch (failure) {
       return error(
         res,
-        failure instanceof InvalidRequest ? 400 : 503,
-        failure instanceof InvalidRequest
+        failure instanceof WorkspaceFileError
+          ? failure.status
+          : failure instanceof InvalidRequest
+            ? 400
+            : 503,
+        failure instanceof InvalidRequest || failure instanceof WorkspaceFileError
           ? failure.message
           : 'Atlas runtime is unavailable or the request could not be completed',
         requestId,

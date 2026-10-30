@@ -1,4 +1,11 @@
-import type { Health, Session, WorkspaceInventory, SessionStatus } from '../types/api'
+import type {
+  Health,
+  Session,
+  WorkspaceInventory,
+  SessionStatus,
+  WorkspaceFileContent,
+  SessionDiffSnapshot,
+} from '../types/api'
 import { WORKSPACE_ID } from '../types/api'
 
 export class ApiError extends Error {
@@ -49,6 +56,13 @@ export const api = {
   health: (signal?: AbortSignal) => request<Health>('/health', { signal }),
   workspace: (signal?: AbortSignal) =>
     request<WorkspaceInventory>(`/workspaces/${WORKSPACE_ID}/status`, { signal }),
+  file: (path: string, signal?: AbortSignal) =>
+    request<WorkspaceFileContent>(
+      `/workspaces/${WORKSPACE_ID}/file?path=${encodeURIComponent(path)}`,
+      { signal },
+    ),
+  sessionDiff: (id: string, signal?: AbortSignal) =>
+    request<SessionDiffSnapshot>(`/sessions/${encodeURIComponent(id)}/diff`, { signal }),
   createSession: (title: string) =>
     request<Session>('/sessions', post({ workspaceId: WORKSPACE_ID, title })),
   history: (id: string, signal?: AbortSignal) =>
@@ -72,11 +86,11 @@ export const api = {
 export const capabilities = {
   authentication: false,
   projectCrud: false,
-  fileContent: false,
+  fileContent: true,
   fileWrite: false,
   modelDiscovery: false,
   modelSelection: false,
-  diff: false,
+  diff: true,
   terminalStream: false,
 } as const
 export async function authenticate(): Promise<never> {

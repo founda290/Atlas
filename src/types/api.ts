@@ -43,3 +43,20 @@ export interface Message {
   text: string
   tools: string[]
 }
+
+export interface WorkspaceFileContent {
+  workspaceId: string
+  path: string
+  content: string
+  bytes: number
+  encoding: 'utf-8'
+  readOnly: true
+}
+export interface SessionDiffSnapshot {
+  sessionId: string
+  diffs: { file: string; before: string; after: string; additions: number; deletions: number }[]
+  omitted: number
+  source: 'opencode-session'
+  authoritativeFilesystem: false
+  fetchedAt: number
+}

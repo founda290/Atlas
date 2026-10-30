@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FileContent } from './FileContent'
 import { Button, EmptyState, Icon, SearchInput } from '../../components/ui'
 import type { WorkspaceFile } from '../../types/api'
 import { buildFileTree, type FileNode } from './data'
@@ -82,7 +83,7 @@ export function FileExplorer({
         </EmptyState>
       )}
       <div className="explorer-footer">
-        <span>{files.length} files · inventory only</span>
+        <span>{files.length} files · read-only access</span>
         <Button secondary href="/docs/workspace">
           File access limitations
         </Button>
@@ -90,36 +91,32 @@ export function FileExplorer({
     </div>
   )
 }
-export function FileDetails({ file }: { file: WorkspaceFile }) {
+export function FileDetails({ file, revision = 0 }: { file: WorkspaceFile; revision?: number }) {
   return (
     <div className="file-details">
-      <p className="panel-eyebrow">Selected file / metadata</p>
+      <p className="panel-eyebrow">Selected file / read-only source</p>
       <h2>{file.path.split('/').pop()}</h2>
       <code>{file.path}</code>
-      <dl className="detail-list">
-        <div>
-          <dt>Type</dt>
-          <dd>{file.path.includes('.') ? file.path.split('.').pop()?.toUpperCase() : 'File'}</dd>
-        </div>
-        <div>
-          <dt>Size</dt>
-          <dd>
-            {file.bytes === undefined ? 'Not reported' : `${file.bytes.toLocaleString()} bytes`}
-          </dd>
-        </div>
-        <div>
-          <dt>Access</dt>
-          <dd>Read-only inventory</dd>
-        </div>
-      </dl>
-      <div className="file-access-notice">
-        <Icon name="file" />
-        <h3>Open this file in your local editor.</h3>
-        <p>
-          Atlas knows this path exists, but its API does not expose file contents or editing. No
-          code has been substituted here.
-        </p>
-      </div>
+      <FileContent key={file.path} path={file.path} revision={revision} />
+      <details className="file-inventory-details">
+        <summary>Inventory metadata</summary>
+        <dl className="detail-list">
+          <div>
+            <dt>Type</dt>
+            <dd>{file.path.includes('.') ? file.path.split('.').pop()?.toUpperCase() : 'File'}</dd>
+          </div>
+          <div>
+            <dt>Inventory size</dt>
+            <dd>
+              {file.bytes === undefined ? 'Not reported' : `${file.bytes.toLocaleString()} bytes`}
+            </dd>
+          </div>
+          <div>
+            <dt>Access</dt>
+            <dd>Read-only text preview</dd>
+          </div>
+        </dl>
+      </details>
     </div>
   )
 }
