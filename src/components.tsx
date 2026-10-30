@@ -41,7 +41,7 @@ function PublicNavigation() {
         </NavLink>
       ))}
       <Link to="/login">Sign in</Link>
-      <Link to="/dashboard">Open workspace</Link>
+      <Link to="/chat">Open workspace</Link>
     </>
   )
 }
@@ -64,7 +64,7 @@ export function SiteHeader() {
           <Link className="sign-in" to="/login">
             Sign in
           </Link>
-          <Button href="/dashboard">
+          <Button href="/chat">
             Open workspace <span aria-hidden="true">↗</span>
           </Button>
           <NavigationDrawer label="Open site navigation">
@@ -84,7 +84,7 @@ export function SiteFooter() {
       links: [
         ['Features', '/features'],
         ['Early access', '/pricing'],
-        ['Workspace', '/dashboard'],
+        ['Workspace', '/chat'],
       ],
     },
     {
@@ -128,8 +128,8 @@ export function SiteFooter() {
           </div>
         </div>
         <div className="footer-base">
-          <span>Atlas · powered by OpenCode</span>
-          <span>Browser-local and local runtime workspaces · cloud execution disabled</span>
+          <span>Atlas · hosted AI execution is not yet available</span>
+          <span>Browser-local projects are optional · cloud execution is disabled</span>
         </div>
       </PageContainer>
     </footer>
@@ -221,21 +221,19 @@ export function ProductPreview() {
   )
 }
 const appLinks: { label: string; href: string; icon: IconName }[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
-  { label: 'Projects', href: '/projects', icon: 'folder' },
-  { label: 'Models', href: '/models', icon: 'model' },
-  { label: 'Integrations', href: '/integrations/manage', icon: 'integration' },
+  { label: 'Chat', href: '/chat', icon: 'chat' },
+  { label: 'Projects', href: '/browser-projects', icon: 'folder' },
   { label: 'Settings', href: '/settings', icon: 'settings' },
 ]
 export function AppSidebar() {
   return (
     <aside className="app-sidebar">
       <div className="sidebar-brand">
-        <Link className="wordmark" to="/dashboard">
+        <Link className="wordmark" to="/chat">
           <AtlasMark small />
           <span>Atlas</span>
         </Link>
-        <span className="workspace-caption">LOCAL WORKSPACE</span>
+        <span className="workspace-caption">ATLAS WORKSPACE</span>
       </div>
       <nav aria-label="Application navigation">
         {appLinks.map((item) => (
@@ -246,14 +244,14 @@ export function AppSidebar() {
         ))}
       </nav>
       <div className="sidebar-guide">
-        <span className="panel-eyebrow">Your environment</span>
+        <span className="panel-eyebrow">Hosted chat</span>
         <p>
-          Managed local workspaces.
+          Chat is not available yet.
           <br />
-          Your runtime. Your machine.
+          No sample conversations are shown.
         </p>
-        <Link to="/docs/getting-started">
-          Setup guide <span aria-hidden="true">↗</span>
+        <Link to="/cloud-projects">
+          Why it is unavailable <span aria-hidden="true">↗</span>
         </Link>
       </div>
       <div className="sidebar-bottom">
@@ -268,14 +266,16 @@ export function AppSidebar() {
           </span>
         </Link>
         <Link className="back-to-site" to="/">
-          Back to website <span aria-hidden="true">↗</span>
+          About Atlas <span aria-hidden="true">↗</span>
         </Link>
       </div>
     </aside>
   )
 }
 function SidebarAccount() {
-  const { user, loading } = useAccount()
+  const { user, loading, signOut } = useAccount()
+  const [signOutBusy, setSignOutBusy] = useState(false)
+  const [signOutNotice, setSignOutNotice] = useState('')
   return (
     <>
       <div className="connection-state">
@@ -288,8 +288,32 @@ function SidebarAccount() {
       <Link className="text-link" to="/account">
         {user ? 'Manage account' : 'Create account / sign in'}
       </Link>
+      {user && (
+        <button
+          className="text-button sidebar-signout"
+          type="button"
+          disabled={signOutBusy}
+          onClick={() => {
+            setSignOutBusy(true)
+            setSignOutNotice('')
+            void signOut()
+              .then(() => setSignOutNotice('Signed out.'))
+              .catch(() =>
+                setSignOutNotice('Sign-out could not be confirmed. Check your connection.'),
+              )
+              .finally(() => setSignOutBusy(false))
+          }}
+        >
+          {signOutBusy ? 'Signing out…' : 'Sign out'}
+        </button>
+      )}
+      {signOutNotice && (
+        <p className="connection-state" role="status">
+          {signOutNotice}
+        </p>
+      )}
       <Link className="text-link" to="/browser-projects">
-        Browser-local projects
+        Projects on this browser
       </Link>
       <Link className="text-link" to="/cloud-projects">
         Cloud — disabled
@@ -315,7 +339,7 @@ export function AppShell() {
           <AppSidebar />
         </NavigationDrawer>
         <div className="app-header-context">
-          <span>LOCAL / ATLAS</span>
+          <span>ATLAS / WORKSPACE</span>
           <strong>{current}</strong>
         </div>
         <div className="app-header-actions">

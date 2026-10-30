@@ -8,6 +8,7 @@ const routes = [
   '/docs',
   '/login',
   '/signup',
+  '/chat',
   '/dashboard',
   '/projects',
   '/projects/11111111-1111-4111-8111-111111111111',
@@ -39,7 +40,7 @@ async function noOverflow(page: Page) {
   ).toBe(true)
 }
 for (const width of [360, 390, 430, 768, 1024, 1440]) {
-  test(`all 14 routes at ${width}px with real API/unavailable states`, async ({ page }) => {
+  test(`all 15 routes at ${width}px with real API/unavailable states`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
@@ -134,14 +135,14 @@ test('display preferences save, cancel and persist', async ({ page }) => {
   await expect(page.getByLabel('Workspace theme', { exact: true })).toHaveValue('dark')
   await page.getByLabel('Workspace theme', { exact: true }).selectOption('light')
   await page.getByLabel('Interface density', { exact: true }).selectOption('compact')
-  await page.getByLabel('Wrap code blocks in agent messages').uncheck()
+  await page.getByLabel('Wrap code blocks in messages').uncheck()
   await page.getByRole('button', { name: 'Save preferences' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Preferences saved' })).toBeVisible()
   await expect(page.locator('.app-shell')).toHaveAttribute('data-app-theme', 'light')
   await page.reload()
   await expect(page.locator('.app-shell')).toHaveClass(/density-compact/)
   await expect(page.getByLabel('Workspace theme', { exact: true })).toHaveValue('light')
-  await expect(page.getByLabel('Wrap code blocks in agent messages')).not.toBeChecked()
+  await expect(page.getByLabel('Wrap code blocks in messages')).not.toBeChecked()
   await page.getByRole('button', { name: 'Use dark workspace theme' }).click()
   await expect(page.locator('.app-shell')).toHaveAttribute('data-app-theme', 'dark')
   await expect(page.getByLabel('Workspace theme', { exact: true })).toHaveValue('dark')
@@ -180,7 +181,9 @@ test('account forms validate without network credential submission', async ({ pa
   )
   expect(requests).toEqual([])
 })
-test('project search and real creation controls plus integration filters', async ({ page }) => {
+test('project search and creation controls plus honest integration availability', async ({
+  page,
+}) => {
   await page.goto('/projects')
   await stable(page)
   await page.getByRole('searchbox', { name: 'Search projects' }).fill('not-a-project')
@@ -191,10 +194,10 @@ test('project search and real creation controls plus integration filters', async
   await expect(page.getByRole('dialog')).toContainText('backend-managed Git workspace')
   await page.keyboard.press('Escape')
   await page.goto('/integrations')
-  await page
-    .getByRole('combobox', { name: 'Integration category' })
-    .selectOption('MCP integrations')
-  await expect(page.locator('.directory-card')).toHaveCount(1)
+  await expect(
+    page.getByRole('heading', { name: 'Connections are not available yet.' }),
+  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Hosted AI execution' })).toBeVisible()
 })
 // Test-only runtime fixtures. None of these records is imported by product code.
 async function fixtureSession(page: Page) {
@@ -373,24 +376,31 @@ for (const width of [360, 390, 430, 768, 1024, 1440]) {
     await expect(page.locator('.workspace-header-actions')).toContainText('cancelled')
   })
 }
-test('API failures stay visible instead of returning invented data', async ({ page }) => {
-  await page.route('**/api/v1/**', (route) =>
-    route.fulfill({
+test('API failures stay visible; hosted Chat and dashboard never call the absent local API', async ({
+  page,
+}) => {
+  const apiRequests: string[] = []
+  await page.route('**/api/v1/**', (route) => {
+    apiRequests.push(route.request().url())
+    return route.fulfill({
       status: 503,
       json: { data: { error: { message: 'Test-only unavailable backend' } } },
-    }),
-  )
-  for (const route of [
-    '/dashboard',
-    '/projects',
-    '/projects/11111111-1111-4111-8111-111111111111',
-    '/models',
-    '/integrations/manage',
-    '/settings',
-  ]) {
+    })
+  })
+  for (const route of ['/projects', '/projects/11111111-1111-4111-8111-111111111111', '/models']) {
     await page.goto(route)
     await stable(page)
     await expect(page.getByRole('alert').first()).toContainText('Test-only unavailable backend')
+  }
+  expect(apiRequests.length).toBeGreaterThan(0)
+  for (const route of ['/dashboard', '/chat', '/integrations/manage', '/settings']) {
+    const before = apiRequests.length
+    await page.goto(route)
+    await stable(page)
+    await expect(page.getByRole('alert')).toHaveCount(0)
+    expect(apiRequests).toHaveLength(before)
+    if (route === '/chat')
+      await expect(page.getByRole('heading', { name: 'What are you working on?' })).toBeVisible()
   }
 })
 
@@ -427,7 +437,7 @@ test('documentation code copy uses the clipboard', async ({ page, context }) => 
   await page.goto('/docs/runtime')
   await page.getByRole('button', { name: 'Copy code' }).click()
   await expect(page.getByRole('button', { name: 'Copied', exact: true })).toBeVisible()
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('/api/v1/sessions')
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('/api/cloud')
 })
 
 test('critical and serious accessibility checks on every main route', async ({ page }) => {

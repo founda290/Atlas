@@ -26,6 +26,9 @@ export class ApiError extends Error {
     this.name = 'ApiError'
   }
 }
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response
   try {
@@ -39,23 +42,28 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
       0,
     )
   }
-  let result: { data?: T & { error?: { message?: string } } }
+  let payload: unknown
   try {
-    result = await response.json()
+    payload = JSON.parse(await response.text())
   } catch {
+    const contentType = response.headers.get('content-type')?.split(';', 1)[0]?.trim() || 'unknown'
     throw new ApiError(
-      'The Atlas API did not return JSON. Start the backend and use the Vite API proxy.',
+      `Atlas API returned HTTP ${response.status} as ${contentType}, not JSON. The requested API route is unavailable in this deployment; verify that the frontend is pointed at a supported API endpoint.`,
       response.status,
     )
   }
-  if (!response.ok || result.data?.error)
+  if (!isRecord(payload))
+    throw new ApiError('The Atlas API returned JSON in an unexpected format.', response.status)
+  const data = payload.data
+  const apiError = isRecord(data) && isRecord(data.error) ? data.error.message : undefined
+  if (!response.ok || typeof apiError === 'string')
     throw new ApiError(
-      result.data?.error?.message ?? `Request failed (${response.status}).`,
+      typeof apiError === 'string' ? apiError : `Request failed (${response.status}).`,
       response.status,
     )
-  if (result.data === undefined)
+  if (data === undefined || data === null)
     throw new ApiError('The API returned an incomplete response.', response.status)
-  return result.data
+  return data as T
 }
 const post = (body?: unknown): RequestInit => ({
   method: 'POST',

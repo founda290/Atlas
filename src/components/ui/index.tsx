@@ -283,6 +283,7 @@ export function CodeBlock({ code, language = 'text' }: { code: string; language?
 const paths = {
   menu: 'M4 6h16M4 12h16M4 18h16',
   close: 'm6 6 12 12M18 6 6 18',
+  chat: 'M4 5h16v11H8l-4 4zM8 9h8M8 12h5',
   dashboard: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
   folder: 'M3 7V4h6l2 3h10v13H3z',
   model: 'm12 3 9 9-9 9-9-9zM12 3v18M3 12h18',

@@ -1,31 +1,31 @@
 import { Link } from 'react-router-dom'
-import { Button, FeatureCard, PageContainer, ProductPreview, Section } from '../components'
+import { Button, FeatureCard, PageContainer, Section } from '../components'
 import { Badge, PageHeader } from '../components/ui'
 
 const features = [
   [
-    'A conversation with context',
-    'Create real OpenCode sessions and give the agent focused instructions in your local workspace.',
+    'A chat-first workspace',
+    'Sign in to a focused Chat home. Hosted AI execution is not live yet, so the composer stays disabled and no sample conversations are shown.',
   ],
   [
-    'A project, not a blank chat',
-    'Keep the workspace inventory and session history next to the work. One dedicated local workspace is supported today.',
+    'Projects are optional',
+    'Create a browser-local project only when you want source editing. It stays in this browser profile and is not uploaded to your account.',
   ],
   [
-    'An observable process',
-    'Follow streamed messages, tool activity and lifecycle events. Cancel an active instruction when you need to stop.',
+    'Real source editing',
+    'Browser-local projects use IndexedDB with real text files, conflict checks, import and export. They do not run an AI agent.',
   ],
   [
-    'Your provider, locally',
-    'OpenCode owns provider credentials and runtime configuration. Atlas never asks for an API key in the browser.',
+    'Email account flows',
+    'Neon email/password signup, sign-in and reset flows are implemented. Live provider, email and browser-cookie acceptance remains pending.',
   ],
   [
-    'A thread you can return to',
-    'Continue sessions while the backend is running. Atlas session mappings are in memory, not durable storage.',
+    'No fabricated activity',
+    'No demo projects, conversations, assistant replies or execution results are inserted into the product.',
   ],
   [
-    'Clear execution boundaries',
-    'The backend owns the agent. Review your local files in your own tools; Atlas is not an execution sandbox.',
+    'Hosted execution is not available',
+    'A real isolated worker, resource limits, lifecycle controls and safety verification must be deployed before chat can send messages.',
   ],
 ] as const
 export function HomePage() {
@@ -34,40 +34,36 @@ export function HomePage() {
       <section className="hero">
         <PageContainer>
           <div className="hero-copy">
-            <p className="eyebrow">A quieter way to build</p>
+            <p className="eyebrow">A focused workspace for software</p>
             <h1>
-              Make room for <em>better code.</em>
+              Start with a <em>conversation.</em>
             </h1>
             <p className="hero-lede">
-              Build, understand and manage software with an AI coding agent. Atlas brings your
-              project context, coding sessions and local OpenCode runtime into one focused browser
-              workspace.
+              Atlas is organized around chat, with project creation optional. Hosted AI execution is
+              not live yet, so Atlas will not pretend to answer or run code.
             </p>
             <div className="hero-actions">
-              <Button href="/dashboard">
-                Open the local workspace <span aria-hidden="true">↗</span>
+              <Button href="/chat">
+                Open chat <span aria-hidden="true">↗</span>
               </Button>
-              <Button href="/docs/getting-started" secondary>
-                Read the setup guide <span aria-hidden="true">→</span>
+              <Button href="/browser-projects" secondary>
+                Create a project <span aria-hidden="true">→</span>
               </Button>
             </div>
             <div className="trust">
-              <p className="trust-kicker">Local first. Deliberate by design.</p>
-              <p>Real sessions. Your own runtime. No simulated execution.</p>
+              <p className="trust-kicker">No demo conversations. No simulated execution.</p>
+              <p>Chat is not enabled until a real hosted worker is ready.</p>
               <span className="principle-note">
-                Development preview · requires a local backend and configured OpenCode provider.
+                Browser-local project editing is available as an optional, separate tool.
               </span>
             </div>
           </div>
         </PageContainer>
       </section>
-      <Section className="preview-section" eyebrow="The workspace, at a glance">
-        <ProductPreview />
-      </Section>
       <Section
         eyebrow="Built around the work"
-        title="The useful parts. In one considered space."
-        intro="A practical interface for working with code and its context—not another disconnected chat window."
+        title="What is actually available today."
+        intro="Implemented surfaces are called out clearly. Features that need hosted execution remain unavailable, not simulated."
       >
         <div className="feature-grid">
           {features.map(([title, description], index) => (
@@ -77,30 +73,30 @@ export function HomePage() {
       </Section>
       <Section
         className="workflow"
-        eyebrow="How Atlas works"
-        title="From intention to a real coding session."
+        eyebrow="The launch boundary today"
+        title="Chat-first interface. Hosted execution still to come."
       >
         <div className="workflow-grid">
           {[
             [
               '01',
-              'Prepare your environment',
-              'Start Atlas locally and configure a provider in OpenCode. Keep secrets outside the workspace.',
+              'Open Chat',
+              'Sign in or enter the workspace. Chat is the main surface; projects are optional.',
             ],
             [
               '02',
-              'Open your project',
-              'Inspect the dedicated test workspace and establish the context for your instruction.',
+              'No demo conversations',
+              'Atlas shows no seeded projects, messages or pretend assistant replies.',
             ],
             [
               '03',
-              'Work with the agent',
-              'Start a session, submit an instruction and follow messages and tool activity as they arrive.',
+              'Add a project if useful',
+              'The optional browser-local editor can create, edit, import and export real source files.',
             ],
             [
               '04',
-              'Review on your machine',
-              'Inspect changes with your local editor and Git. Atlas can show observed runtime diffs, but cannot read or edit files.',
+              'Wait for hosted execution',
+              'Sending remains disabled until an isolated worker and its safety controls are deployed.',
             ],
           ].map(([number, title, text]) => (
             <article className="workflow-step" key={number}>
@@ -112,46 +108,52 @@ export function HomePage() {
         </div>
       </Section>
       <Section
-        eyebrow="A clear integration boundary"
-        title="OpenCode at the core. Room to grow."
-        intro="The local OpenCode engine is implemented. Provider discovery comes from the runtime. Direct MCP, CLI and external-service connections in Atlas are planned, not connected."
+        eyebrow="A clear launch boundary"
+        title="No local setup. No implied execution."
+        intro="The hosted coding worker is not deployed. Atlas does not ask users to install or configure a local coding runtime as a substitute."
       >
         <div className="public-split">
           <article className="editorial-card">
             <Badge tone="success">Implemented</Badge>
-            <h3>OpenCode local runtime</h3>
+            <h3>Browser-local project editor</h3>
             <p>
-              A backend-owned SDK connection for sessions, instructions, streaming events,
-              cancellation and message history.
+              Optional source editing and project import/export in the current browser. Files are
+              not synced to an account and do not run an agent.
             </p>
-            <Button href="/integrations" secondary>
-              Explore integrations
+            <Button href="/browser-projects" secondary>
+              Open projects
             </Button>
           </article>
           <article className="editorial-card">
-            <Badge>Planned</Badge>
-            <h3>More tools. Same clarity.</h3>
+            <Badge tone="warning">Not available</Badge>
+            <h3>Hosted AI execution</h3>
             <p>
-              MCP management, Git connections, model selection and hosted workspaces will need real
-              implementation before appearing as connected.
+              Chat messages cannot be sent until the isolated worker, resource limits, lifecycle
+              controls and safety verification are ready.
             </p>
-            <Link className="text-link" to="/docs/runtime">
-              Understand the runtime →
+            <Link className="text-link" to="/cloud-projects">
+              See the launch boundary →
             </Link>
           </article>
         </div>
       </Section>
-      <Section eyebrow="For deliberate development" title="Keep the decisions close to the code.">
+      <Section eyebrow="Account and data" title="Know what lives where.">
         <div className="benefit-list">
           <article>
             <span>01 / Focus</span>
-            <h3>One place for the thread of work.</h3>
-            <p>Separate projects, sessions and runtime details without losing your place.</p>
+            <h3>Sign in to the workspace.</h3>
+            <p>
+              Neon email/password flows exist, but live provider, email and browser-cookie
+              acceptance remains to be verified.
+            </p>
           </article>
           <article>
             <span>02 / Ownership</span>
-            <h3>Your environment remains yours.</h3>
-            <p>Provider setup stays in OpenCode. Atlas does not store secrets in your browser.</p>
+            <h3>Projects stay optional.</h3>
+            <p>
+              Browser-local project files stay in this browser and are not synchronized with your
+              account.
+            </p>
           </article>
           <article>
             <span>03 / Honesty</span>
@@ -164,14 +166,14 @@ export function HomePage() {
       </Section>
       <Section className="final-cta">
         <div className="cta-box">
-          <p className="eyebrow">A local development preview</p>
-          <h2>Give your next idea some context.</h2>
+          <p className="eyebrow">The hosted execution boundary</p>
+          <h2>Chat is ready for the next safe step.</h2>
           <p>
-            Explore Atlas now. Accounts, cloud isolation, durable storage and billing are not
-            enabled. Only run it with a trusted local workspace.
+            Chat is the intended starting point. Hosted AI execution and billing are not available;
+            browser-local project editing is optional.
           </p>
-          <Button href="/dashboard">
-            Open Atlas <span aria-hidden="true">↗</span>
+          <Button href="/chat">
+            Open Chat <span aria-hidden="true">↗</span>
           </Button>
         </div>
       </Section>
@@ -180,45 +182,36 @@ export function HomePage() {
 }
 const capabilityDetails = [
   {
-    title: 'AI coding sessions',
-    status: 'Available locally',
-    text: 'Create a session, send multiline instructions, read assistant messages and stop an active operation. Instructions are executed by your configured OpenCode runtime.',
-    detail: 'Requires a running backend, installed OpenCode CLI and a configured provider.',
+    title: 'Chat workspace',
+    status: 'Execution unavailable',
+    text: 'The Chat route is the primary workspace entry, and projects are optional.',
+    detail:
+      'Hosted AI execution is not deployed. Send stays disabled; no assistant replies are simulated.',
   },
   {
-    title: 'Project-based development',
-    status: 'Available locally',
-    text: 'Create persistent managed projects with independent directories and Git repositories. Inspect real inventory and saved session history.',
-    detail:
-      'Create, rename, describe, archive and delete project registrations. Deletion retains source directories for safety.',
+    title: 'Optional browser-local projects',
+    status: 'Available',
+    text: 'Create and edit real text files in the current browser profile, with conflict checks and file tabs.',
+    detail: 'Projects are not synced to your account and do not run an AI agent.',
   },
   {
-    title: 'Conversation and activity',
-    status: 'Available locally',
-    text: 'Read message history, streamed assistant text, tool events and lifecycle events. Markdown and code blocks remain readable and copyable.',
-    detail:
-      'Events are not a verified terminal stream. Reconnection reloads message history; activity is not replayed.',
+    title: 'Project portability',
+    status: 'Available',
+    text: 'Export an actual browser-local project or import a valid Atlas project backup.',
+    detail: 'Browser storage can be removed by clearing site data or using private browsing.',
   },
   {
-    title: 'Files and code',
-    status: 'Editable text',
-    text: 'Edit supported UTF-8 files up to 256 KiB in CodeMirror, with tabs, syntax highlighting and conflict-checked saves.',
-    detail:
-      'Restricted paths and links are blocked. Review authoritative Git changes, stage/unstage selected files, or confirm a narrow unstaged revert.',
+    title: 'Email account flows',
+    status: 'Acceptance pending',
+    text: 'Neon Auth signup, sign-in, email verification and password reset flows are implemented.',
+    detail: 'Live provider configuration, delivery and browser-cookie behavior remain unverified.',
   },
   {
-    title: 'Models and providers',
-    status: 'Runtime discovery',
-    text: 'View providers reported by the runtime and see whether runtime discovery succeeded.',
+    title: 'Hosted execution and billing',
+    status: 'Not built',
+    text: 'No isolated cloud coding worker or production execution service is deployed.',
     detail:
-      'Select a runtime-reported, connected tool-capable model per session. Discovery is not an authentication or generation test; credentials remain in OpenCode.',
-  },
-  {
-    title: 'Execution and extensibility',
-    status: 'Local runtime',
-    text: 'An AgentRuntime abstraction keeps the browser separate from the execution engine. OpenCode runs locally behind the Atlas backend.',
-    detail:
-      'Session mappings and history are durable. Cloud isolation, direct MCP/CLI management and external connector management are not implemented.',
+      'Cloud projects and billing remain unavailable until the worker, safety controls and quotas are implemented and tested.',
   },
 ]
 export function FeaturesPage() {
@@ -226,8 +219,8 @@ export function FeaturesPage() {
     <>
       <PageHeader
         eyebrow="Atlas / Capabilities"
-        title="A working foundation. A clear direction."
-        description="What you can do in Atlas today, and where the boundaries still are."
+        title="What works. What does not."
+        description="No mock activity: working features and unavailable hosted execution are shown separately."
       />
       <Section eyebrow="Current capabilities" title="Less ambiguity. More useful context.">
         <div className="capability-list">
@@ -244,12 +237,15 @@ export function FeaturesPage() {
           ))}
         </div>
       </Section>
-      <Section eyebrow="The actual interface" title="Built for the project, not the performance.">
-        <ProductPreview />
+      <Section eyebrow="Projects are optional" title="Chat remains the intended starting point.">
+        <p className="section-intro">
+          Browser-local projects are available for source editing and backups, but they do not
+          substitute for hosted chat or execute code.
+        </p>
         <div className="section-actions">
-          <Button href="/projects">Explore projects</Button>
-          <Button href="/docs/workspace" secondary>
-            Workspace guide
+          <Button href="/browser-projects">Create a project</Button>
+          <Button href="/chat" secondary>
+            Open Chat
           </Button>
         </div>
       </Section>
@@ -257,12 +253,12 @@ export function FeaturesPage() {
   )
 }
 const comparison = [
-  ['Coding sessions', 'Local OpenCode runtime'],
-  ['AI usage', 'Subject to your provider’s terms and costs'],
-  ['Workspace', 'One dedicated local workspace'],
-  ['Session retention', 'Backend mappings reset on restart'],
-  ['Accounts & teams', 'Not enabled'],
-  ['Hosted execution', 'Not available'],
+  ['Hosted coding sessions', 'Not available; no worker is deployed'],
+  ['AI usage', 'Atlas does not currently send prompts to a model'],
+  ['Workspace', 'Chat-first home; optional browser-local projects'],
+  ['Project retention', 'Project files stay in this browser profile and are not synced'],
+  ['Accounts & teams', 'Neon email/password flows implemented; live acceptance pending'],
+  ['Hosted execution', 'No isolated cloud coding worker is deployed'],
   ['Billing', 'Not implemented'],
 ]
 export function PricingPage() {
@@ -271,27 +267,27 @@ export function PricingPage() {
       <PageHeader
         eyebrow="Atlas / Early access"
         title="Not a pricing promise."
-        description="Atlas is a local development preview. Commercial plans, prices and quotas have not been established."
+        description="Hosted AI execution has not launched. Atlas has no paid plans, published prices or usage quotas."
       />
-      <Section eyebrow="Available today" title="Explore locally. Bring your own runtime.">
+      <Section eyebrow="Current availability" title="No hosted usage or billing yet.">
         <div className="pricing-layout">
           <article className="pricing-card">
-            <Badge>Local development preview</Badge>
-            <h3>Atlas, on your machine.</h3>
+            <Badge>Hosted execution not available</Badge>
+            <h3>Chat-first workspace.</h3>
             <p className="pricing-value">No Atlas billing</p>
             <p>
               This is not a subscription plan or a promise of free hosted usage. Atlas does not
               process payments.
             </p>
             <ul>
-              <li>Browser-based workspace interface</li>
-              <li>Real OpenCode session flow</li>
-              <li>Your locally configured provider</li>
-              <li>Local setup and security guidance</li>
+              <li>Chat-first workspace entry with sending disabled</li>
+              <li>Optional browser-local source editing</li>
+              <li>Real import and export for browser projects</li>
+              <li>Neon account flows; live acceptance pending</li>
             </ul>
-            <Button href="/docs/getting-started">Set up Atlas locally</Button>
+            <Button href="/chat">Open Chat</Button>
             <p className="fine-print">
-              AI provider usage may incur costs. Check your provider before sending instructions.
+              Atlas does not currently send prompts to an AI model or charge for model usage.
             </p>
           </article>
           <div className="comparison">
@@ -316,15 +312,15 @@ export function PricingPage() {
             ],
             [
               'Who pays for model usage?',
-              'Your configured OpenCode provider determines availability, usage limits and charges. Atlas does not bundle model credits.',
+              'Hosted Atlas does not currently send prompts to a model, so there is no Atlas model usage or charge.',
             ],
             [
               'Do I need an account?',
-              'No. The local preview is not authenticated. Login and signup interfaces are prepared for a future backend, but do not create accounts.',
+              'Browser-local editing does not require an account. Neon email/password signup and sign-in flows are implemented, but the live provider, email and cookie behavior still needs acceptance.',
             ],
             [
               'Is the runtime isolated?',
-              'No. OpenCode executes locally. Use only trusted code and a dedicated workspace without secrets.',
+              'No hosted execution worker exists yet. The Chat composer is disabled; Atlas does not execute submitted code in the hosted app.',
             ],
             [
               'Will pricing change?',
@@ -350,17 +346,17 @@ export function StatusPage({ code = '404' }: { code?: string }) {
     ],
     '403': ['This resource is not available.', 'No action was completed by this page.'],
     '404': ['This page went looking for context.', 'The route does not exist, or it has moved.'],
-    '408': ['The request took too long.', 'Retry once the local connection is ready.'],
+    '408': ['The request took too long.', 'Retry when Atlas services are available.'],
     '429': ['A little too much, too quickly.', 'Wait before retrying your request.'],
-    '500': ['Something needs attention.', 'Check the Atlas backend before trying again.'],
-    '502': ['The runtime boundary is quiet.', 'Check the upstream runtime connection.'],
+    '500': ['Something needs attention.', 'Retry once the hosted service is available.'],
+    '502': ['The hosted runtime is unavailable.', 'Hosted coding execution is not available yet.'],
     '503': [
-      'The local service is unavailable.',
-      'Start the local backend and check OpenCode configuration.',
+      'The hosted service is unavailable.',
+      'Try again later. Atlas will not send work to a local runtime instead.',
     ],
     offline: [
       'You are working without a connection.',
-      'Reconnect to the Atlas backend and try again.',
+      'Reconnect to the internet and reopen Atlas.',
     ],
   }
   const [title, description] = descriptions[code] ?? descriptions['404']

@@ -1,5 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+
+const apiPort = Number(process.env.ATLAS_API_PORT ?? 8787)
+if (!Number.isInteger(apiPort) || apiPort < 1 || apiPort > 65535)
+  throw new Error('ATLAS_API_PORT must be between 1 and 65535')
+
 export default defineConfig({
   plugins: [
     react(),
@@ -68,7 +73,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     allowedHosts: ['.e2b.app'],
-    proxy: { '/api': 'http://127.0.0.1:8787' },
+    proxy: { '/api': `http://127.0.0.1:${apiPort}` },
   },
   preview: { host: '0.0.0.0', allowedHosts: ['.e2b.app'] },
 })
