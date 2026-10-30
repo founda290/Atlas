@@ -1,81 +1,92 @@
-import { useEffect, useState } from 'react'
-import { AppShell, ButtonSkeleton, FeatureCard, IntegrationCard, Panel, ProductPreview, Section, SiteFooter, SiteHeader } from './components'
-
-const features = [
-  ['AI-assisted coding', 'A focused space for asking, shaping and reviewing code changes with an agent.'],
-  ['Provider and model choice', 'Keep model selection visible so future provider decisions stay in your hands.'],
-  ['Project and file management', 'A clear home for projects, files and the context your work depends on.'],
-  ['MCP and CLI extensibility', 'Leave room for the tools and connectors that make a coding environment yours.'],
-  ['Execution review', 'See the proposed change, its context and its consequences before anything runs.'],
-  ['Persistent sessions', 'Return to a thread of work without losing the decisions that shaped it.'],
-] as const
-const integrations = [
-  ['AI providers', 'Provider slots'], ['MCP servers', 'Tool connections'], ['CLI tools', 'Local workflows'], ['Git repositories', 'Source control'], ['Future connectors', 'Extensible by design'],
-]
-
-function Landing() {
-  return <><SiteHeader /><main><section className="hero"><div className="page-container"><div className="hero-copy"><p className="eyebrow">A quieter way to build</p><h1>Make room for <em>better code.</em></h1><p className="hero-lede">Atlas is a browser-based AI coding workspace powered by OpenCode — designed to help you think, change and review software with care.</p><div className="hero-actions"><ButtonSkeleton href="/docs">Explore the preview <span aria-hidden="true">↗</span></ButtonSkeleton><ButtonSkeleton href="/features" secondary>See how it is structured <span aria-hidden="true">→</span></ButtonSkeleton></div><div className="trust"><p className="trust-kicker">Human review stays in the loop</p><div className="principles"><span className="principle-dot" /><span>Designed for deliberate work, clear context and human review.</span></div><span className="principle-note">No connected account required to explore the interface.</span></div></div></div></section><Section className="preview-section" eyebrow="The workspace, at a glance"><ProductPreview /></Section><Section eyebrow="What Atlas makes room for" title="The useful parts of an AI coding workspace, without the noise." intro="A structural preview of the capabilities Atlas is being designed around. Nothing here implies an active connection or running agent."><div className="feature-grid">{features.map(([title, description], i) => <FeatureCard key={title} index={i + 1} title={title} description={description} />)}</div></Section><Section className="workflow" eyebrow="A considered workflow" title="From intention to reviewed change."><div className="workflow-grid">{[['01', 'Set the context', 'Start with the project, files and constraints that matter.'], ['02', 'Shape the change', 'Use a focused agent conversation to explore a direction.'], ['03', 'Review the result', 'Keep the human decision visible before work moves forward.'], ['04', 'Keep the thread', 'Leave a durable path back to the decisions behind the code.']].map(([number, title, description]) => <article className="workflow-step" key={number}><div className="step-number">{number}</div><h3>{title}</h3><p>{description}</p><div className="step-preview"><span /></div></article>)}</div></Section><Section eyebrow="Designed to connect later" title="A deliberate place for your tools." intro="Atlas leaves the boundaries open for providers, servers and repositories without pretending they are connected today."><div className="integration-grid">{integrations.map(([label, detail]) => <IntegrationCard key={label} label={label} detail={detail} />)}</div></Section><Section className="final-cta"><div className="cta-box"><p className="eyebrow">A work in progress, intentionally</p><h2>See the shape of what comes next.</h2><p>Explore the interface architecture before the product gains its working connections.</p><ButtonSkeleton href="/docs">Read the documentation <span aria-hidden="true">↗</span></ButtonSkeleton></div></Section></main><SiteFooter /></>
+import { Component, useEffect, type ErrorInfo, type ReactNode } from 'react'
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { AppShell, PublicLayout } from './components'
+import { PreferencesProvider } from './hooks/preferences'
+import { AuthPage } from './pages/AuthPage'
+import { DocsPage } from './pages/DocsPage'
+import { IntegrationsPage, ManagedIntegrationsPage } from './pages/IntegrationsPage'
+import { ModelsPage } from './pages/ModelsPage'
+import { DashboardPage, ProjectPage, ProjectsPage } from './pages/ProjectPages'
+import { FeaturesPage, HomePage, PricingPage, StatusPage } from './pages/PublicPages'
+import { SettingsPage } from './pages/SettingsPage'
+import { WorkspacePage } from './pages/WorkspacePage'
+function RouteEffects() {
+  const location = useLocation()
+  useEffect(() => {
+    const name =
+      location.pathname === '/'
+        ? 'A considered coding workspace'
+        : location.pathname
+            .split('/')
+            .filter(Boolean)[0]
+            .replace(/^./, (letter) => letter.toUpperCase())
+    document.title = `Atlas · ${name}`
+    if (location.hash)
+      requestAnimationFrame(() => document.getElementById(location.hash.slice(1))?.scrollIntoView())
+    else window.scrollTo(0, 0)
+  }, [location.pathname, location.hash])
+  return null
 }
-
-function PublicPage({ title, description }: { title: string; description: string }) {
-  return <><SiteHeader /><main className="basic-page"><div className="page-heading"><p className="eyebrow">Atlas / {title}</p><h1>{title}</h1><p>{description}</p></div><div className="page-placeholder"><div className="placeholder-note"><img className="atlas-mark small" src="/atlas-mark.svg" alt="" aria-hidden="true" /><div><strong>This route is part of the Phase 1 interface.</strong><p>Its structure is ready for future product work; no connected service or account action is simulated here.</p></div></div><div className="placeholder-grid"><div /><div /><div /></div></div></main><SiteFooter /></>
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: boolean }> {
+  state = { error: false }
+  static getDerivedStateFromError() {
+    return { error: true }
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('Atlas interface error', error.message, info.componentStack)
+  }
+  render() {
+    return this.state.error ? (
+      <main className="fatal-error">
+        <h1>The interface encountered an error.</h1>
+        <p>No operation has been simulated. Reload Atlas to recover.</p>
+        <a href="/">Return to Atlas</a>
+      </main>
+    ) : (
+      this.props.children
+    )
+  }
 }
-
-function StatusPage({ code, title, description }: { code: string; title: string; description: string }) {
-  return <><SiteHeader /><main className="status-page"><div className="status-page-inner"><p className="status-code" aria-label={`Error ${code}`}>{code}</p><p className="eyebrow">Atlas / system response</p><h1>{title}</h1><p>{description}</p><div className="status-actions"><ButtonSkeleton href="/">Return home <span aria-hidden="true">↗</span></ButtonSkeleton><ButtonSkeleton href="/docs" secondary>Open documentation <span aria-hidden="true">→</span></ButtonSkeleton></div></div></main><SiteFooter /></>
+export function AppRoutes() {
+  return (
+    <PreferencesProvider>
+      <RouteEffects />
+      <Routes>
+        <Route element={<PublicLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="features" element={<FeaturesPage />} />
+          <Route path="integrations" element={<IntegrationsPage />} />
+          <Route path="pricing" element={<PricingPage />} />
+          <Route path="docs" element={<DocsPage />} />
+          <Route path="docs/:articleId" element={<DocsPage />} />
+          <Route path="login" element={<AuthPage key="login" />} />
+          <Route path="signup" element={<AuthPage key="signup" signup />} />
+          {['400', '401', '403', '404', '408', '429', '500', '502', '503', 'offline'].map(
+            (code) => (
+              <Route key={code} path={code} element={<StatusPage code={code} />} />
+            ),
+          )}
+          <Route path="*" element={<StatusPage />} />
+        </Route>
+        <Route element={<AppShell />}>
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="projects" element={<ProjectsPage />} />
+          <Route path="projects/:projectId" element={<ProjectPage />} />
+          <Route path="projects/:projectId/sessions/:sessionId" element={<WorkspacePage />} />
+          <Route path="models" element={<ModelsPage />} />
+          <Route path="integrations/manage" element={<ManagedIntegrationsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
+      </Routes>
+    </PreferencesProvider>
+  )
 }
-
-function PageHeading({ title, eyebrow = 'Workspace' }: { title: string; eyebrow?: string }) { return <div className="page-heading"><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p className="page-heading-copy">A focused place to prepare the next step. Functional connections will arrive in a later phase.</p></div> }
-
-function DashboardPage() {
-  return <AppShell active="dashboard"><PageHeading title="Good work starts with context." /><div className="dashboard-grid"><Panel title="Start a project" eyebrow="Next step" className="start-panel"><p>Bring a codebase into a workspace when the project connection is ready.</p><ButtonSkeleton>Project action placeholder <span aria-hidden="true">+</span></ButtonSkeleton></Panel><Panel title="Recent projects" eyebrow="Projects"><div className="empty-state"><strong>No projects connected yet.</strong><span>Project entries will appear here when workspace provisioning is available.</span></div></Panel><Panel title="Recent sessions" eyebrow="Sessions"><div className="empty-state"><strong>No sessions to show.</strong><span>Session history will live here once an agent connection exists.</span></div></Panel><Panel title="Setup path" eyebrow="Environment"><div className="setup-list"><div><i />Project connection<span>Not configured</span></div><div><i />Model provider<span>Not configured</span></div><div><i />Tool access<span>Not configured</span></div></div></Panel></div></AppShell>
-}
-
-function WorkspacePage({ session = false }: { session?: boolean }) {
-  const [health, setHealth] = useState('connecting'); const [workspace, setWorkspace] = useState<string[]>([]); const [atlasSession, setAtlasSession] = useState<{ id: string; runtimeSessionId: string; status: string } | null>(null); const [prompt, setPrompt] = useState(''); const [messages, setMessages] = useState<string[]>([]); const [busy, setBusy] = useState(false); const [error, setError] = useState('')
-  useEffect(() => { fetch('/api/v1/health').then(r => r.json()).then(result => { setHealth(result.data.runtime.status); if (result.data.runtime.status === 'unavailable') setError('OpenCode is unavailable. Start the local runtime and configure a provider.') }).catch(() => { setHealth('unavailable'); setError('Atlas API is not running. Start it with npm run server:start.') }); fetch('/api/v1/workspaces/atlas-test-workspace/status').then(r => r.json()).then(result => setWorkspace((result.data?.files ?? []).map((file: { path: string }) => file.path))).catch(() => undefined) }, [])
-  useEffect(() => { if (!atlasSession) return; const source = new EventSource(`/api/v1/sessions/${atlasSession.id}/events`); const append = (event: MessageEvent) => { const data = JSON.parse(event.data); if (data.type !== 'connected') setMessages(current => [...current, `${data.type}${data.data?.text ? `: ${data.data.text}` : data.data?.name ? `: ${data.data.name}` : ''}`]) }; ['session.started', 'message.delta', 'message.completed', 'tool.started', 'tool.completed', 'tool.failed', 'workspace.changed'].forEach(type => source.addEventListener(type, append)); source.addEventListener('session.completed', event => { append(event as MessageEvent); setBusy(false); setAtlasSession(current => current ? { ...current, status: 'completed' } : current) }); source.addEventListener('session.failed', event => { append(event as MessageEvent); setBusy(false) }); source.addEventListener('session.cancelled', event => { append(event as MessageEvent); setBusy(false) }); return () => source.close() }, [atlasSession?.id])
-  async function createSession() { setError(''); const response = await fetch('/api/v1/sessions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ workspaceId: 'atlas-test-workspace', title: 'Atlas test workspace' }) }); const result = await response.json(); if (!response.ok) return setError(result.data?.error?.message ?? 'Could not create session'); setAtlasSession(result.data); setMessages(['session.ready']) }
-  async function submitPrompt() { if (!atlasSession || !prompt.trim() || busy) return; setBusy(true); setMessages(current => [...current, `user: ${prompt.trim()}`]); const response = await fetch(`/api/v1/sessions/${atlasSession.id}/messages`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: prompt.trim() }) }); if (!response.ok) { setBusy(false); setError('The prompt could not be submitted.') } setPrompt('') }
-  async function cancelPrompt() { if (atlasSession) await fetch(`/api/v1/sessions/${atlasSession.id}/cancel`, { method: 'POST' }) }
-  return <AppShell active="projects"><PageHeading title={session ? 'Agent session' : 'Project workspace'} eyebrow={session ? 'Sessions / OpenCode' : 'Projects / Local test workspace'} /><div className="workspace-layout"><aside className="workspace-files work-panel"><span className="panel-eyebrow">Project files</span><h2>atlas-test-workspace</h2>{workspace.length ? workspace.map(file => <div className="file-row" key={file}><span className="file-dot" />{file}</div>) : <div className="empty-state"><span>Workspace status unavailable.</span></div>}</aside><Panel title="Runtime connection" eyebrow="OpenCode status" className="editor-panel"><div className="runtime-status"><span className={`status-dot ${health}`} />{health}</div><p className="muted-copy">The backend owns the OpenCode client and keeps the runtime on loopback.</p>{error && <p className="runtime-error">{error}</p>} {!atlasSession ? <ButtonSkeleton onClick={createSession}>Create test session <span aria-hidden="true">+</span></ButtonSkeleton> : <p className="muted-copy">Atlas session ready · runtime {atlasSession.runtimeSessionId}</p>}</Panel><Panel title="Agent conversation" eyebrow="Live transcript" className="agent-panel"><div className="transcript" aria-live="polite">{messages.length ? messages.map((message, index) => <div className="transcript-line" key={`${message}-${index}`}>{message}</div>) : <p className="muted-copy">Create a session, then send a real instruction to OpenCode.</p>}</div><textarea className="agent-composer" value={prompt} onChange={event => setPrompt(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void submitPrompt() } }} placeholder="Ask OpenCode to make a small change…" disabled={!atlasSession || busy} /><div className="composer-actions"><ButtonSkeleton onClick={() => void submitPrompt()} disabled={!atlasSession || busy || !prompt.trim()}> {busy ? 'Running…' : 'Send instruction'} </ButtonSkeleton>{busy && <ButtonSkeleton secondary onClick={() => void cancelPrompt()}>Cancel</ButtonSkeleton>}</div></Panel><Panel title="Terminal output" eyebrow="Execution" className="terminal-work-panel"><p className="terminal-copy">{health === 'ready' ? 'Live terminal output is not exposed by this SDK integration.' : 'Runtime unavailable'}</p></Panel><Panel title="Change review" eyebrow="Read-only workspace status" className="changes-panel"><div className="empty-state"><strong>{workspace.length ? `${workspace.length} files in test workspace` : 'No workspace status yet.'}</strong><span>Changes are read from the dedicated local workspace; no apply or revert controls are exposed.</span></div></Panel></div></AppShell>
-}
-
-function AppPage({ title, active }: { title: string; active: string }) {
-  return <AppShell active={active}><PageHeading title={title} /><div className="app-content-grid"><Panel title="Primary content region" eyebrow="Workspace"><div className="empty-state"><strong>This section is ready for product data.</strong><span>It remains a visual placeholder until the corresponding service is implemented.</span></div></Panel><Panel title="Context" eyebrow="Details" className="context-panel"><div className="setup-list"><div><i />Connection state<span>Preview only</span></div><div><i />Permissions<span>Not configured</span></div></div></Panel></div></AppShell>
-}
-
 export default function App() {
-  const path = window.location.pathname
-  if (path === '/') return <Landing />
-  if (path === '/dashboard') return <DashboardPage />
-  if (path === '/projects' || path.startsWith('/projects/')) return <WorkspacePage session={path.includes('/sessions/')} />
-  if (path === '/models') return <AppPage title="Models" active="models" />
-  if (path === '/integrations/manage') return <AppPage title="Manage integrations" active="integrations" />
-  if (path === '/settings') return <AppPage title="Settings" active="settings" />
-  const statusPages: Record<string, [string, string, string]> = {
-    '/400': ['400', 'That request needs another look.', 'Atlas could not understand the request. Check the address or return to a clean starting point.'],
-    '/401': ['401', 'Sign-in is required.', 'This space needs an authenticated Atlas session before it can be opened.'],
-    '/403': ['403', 'This area is not available.', 'Your current session does not have permission to access this Atlas resource.'],
-    '/404': ['404', 'This page went looking for context.', 'The route does not exist, or it has moved somewhere else in the workspace.'],
-    '/408': ['408', 'The request took too long.', 'The connection timed out before Atlas could finish. Try the request again.'],
-    '/429': ['429', 'A little too much, too quickly.', 'Atlas is pacing requests for this local session. Wait a moment and try again.'],
-    '/500': ['500', 'Something broke on our side.', 'The Atlas service hit an unexpected condition. No action was completed by this page.'],
-    '/502': ['502', 'The runtime boundary is quiet.', 'Atlas received an invalid response from an upstream runtime.'],
-    '/503': ['503', 'Atlas is temporarily unavailable.', 'The local service is offline or still starting. Try again when the runtime is ready.'],
-    '/offline': ['Offline', 'You are working without a connection.', 'Atlas could not reach the local service. Reconnect, then try the request again.'],
-  }
-  const status = statusPages[path]
-  if (status) return <StatusPage code={status[0]} title={status[1]} description={status[2]} />
-  const pages: Record<string, [string, string]> = {
-    '/features': ['Product capabilities', 'A considered set of surfaces for working with code and its context.'],
-    '/integrations': ['Providers and integrations', 'A clear boundary for the tools Atlas may connect to in a future phase.'],
-    '/pricing': ['Pricing structure', 'A placeholder for transparent plans once the product is ready to be offered.'],
-    '/docs': ['Documentation', 'Notes on the architecture, principles and future integration path.'],
-    '/login': ['Sign in', 'Authentication is not connected yet. This route is an intentional entry-point placeholder.'],
-    '/signup': ['Preview Atlas', 'Account creation is not connected yet. Explore the interface without pretending to create an account.'],
-  }
-  const page = pages[path]
-  if (page) return <PublicPage title={page[0]} description={page[1]} />
-  return <StatusPage code="404" title="This page went looking for context." description="The route does not exist, or it has moved somewhere else in the workspace." />
+  return (
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </ErrorBoundary>
+  )
 }
