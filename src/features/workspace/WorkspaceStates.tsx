@@ -17,7 +17,7 @@ export function AgentEmpty() {
     <div className="workspace-empty agent-empty">
       <Icon name="model" />
       <h3>A new thread of work.</h3>
-      <p>Start a coding session with your local OpenCode runtime, then send a clear instruction.</p>
+      <p>Send a message to the selected model to begin. No example conversation is shown.</p>
       <span className="mono muted">No messages yet</span>
     </div>
   )

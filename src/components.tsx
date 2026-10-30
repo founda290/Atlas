@@ -222,6 +222,7 @@ export function ProductPreview() {
 }
 const appLinks: { label: string; href: string; icon: IconName }[] = [
   { label: 'Chat', href: '/chat', icon: 'chat' },
+  { label: 'Models', href: '/models', icon: 'model' },
   { label: 'Projects', href: '/browser-projects', icon: 'folder' },
   { label: 'Settings', href: '/settings', icon: 'settings' },
 ]
@@ -244,14 +245,10 @@ export function AppSidebar() {
         ))}
       </nav>
       <div className="sidebar-guide">
-        <span className="panel-eyebrow">Hosted chat</span>
-        <p>
-          Chat is not available yet.
-          <br />
-          No sample conversations are shown.
-        </p>
-        <Link to="/cloud-projects">
-          Why it is unavailable <span aria-hidden="true">↗</span>
+        <span className="panel-eyebrow">MODEL RUNTIME</span>
+        <p>Hosted messaging is waiting for a provider and an isolated worker.</p>
+        <Link to="/integrations">
+          Connection status <span aria-hidden="true">↗</span>
         </Link>
       </div>
       <div className="sidebar-bottom">

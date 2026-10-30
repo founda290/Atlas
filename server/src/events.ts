@@ -27,7 +27,7 @@ export function normalizeRuntimeEvent(item: unknown): AgentEvent {
     created: Date.now(),
     error:
       raw.type === 'session.error'
-        ? 'OpenCode reported an execution/provider error. Check the selected model and local provider configuration.'
+        ? 'The model runtime reported an error. Check the selected model, provider connection, and worker availability.'
         : undefined,
     data:
       raw.type === 'message.updated'

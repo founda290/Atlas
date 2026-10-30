@@ -7,6 +7,7 @@ afterEach(() => {
     localStorage.clear()
   }
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })
 if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'matchMedia', {

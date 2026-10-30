@@ -57,12 +57,12 @@ export function Conversation({
   return (
     <section
       className={`conversation ${preferences.wrapCode ? 'wrap-code' : ''}`}
-      aria-label="Agent conversation"
+      aria-label="Assistant conversation"
     >
       <div className="workbench-panel-header">
-        <h2>Agent</h2>
+        <h2>Conversation</h2>
         <Badge>
-          {!connected ? 'Waiting for stream' : busy ? 'Working' : 'Ready for instruction'}
+          {!connected ? 'Waiting for connection' : busy ? 'Working' : 'Ready for a message'}
         </Badge>
       </div>
       <div
@@ -81,9 +81,9 @@ export function Conversation({
           messages.map((message) => (
             <article key={message.id} className={`message message-${message.role}`}>
               <div className="message-heading">
-                <span>{message.role === 'user' ? 'You' : 'OpenCode'}</span>
+                <span>{message.role === 'user' ? 'You' : 'Assistant'}</span>
                 <span className="mono">
-                  {message.role === 'user' ? 'Instruction' : 'Agent response'}
+                  {message.role === 'user' ? 'Message' : 'Model response'}
                 </span>
               </div>
               <div className="markdown">
@@ -113,7 +113,7 @@ export function Conversation({
         }}
       >
         <label className="sr-only" htmlFor="agent-prompt">
-          Instruction for OpenCode
+          Message the assistant
         </label>
         <textarea
           id="agent-prompt"
@@ -155,7 +155,7 @@ export function Conversation({
           )}
         </div>
         <p className="execution-disclaimer">
-          Instructions can change local files. No sandbox or approval gate.
+          Messages can change files in the connected workspace. Review changes before using them.
         </p>
       </form>
     </section>

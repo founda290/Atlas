@@ -368,7 +368,7 @@ export async function createEngineeringServer(options: EngineeringOptions) {
             code: error instanceof ServiceError ? error.code : 'request_failed',
             message: known
               ? error.message
-              : 'Operation could not be completed. Check the local backend configuration.',
+              : 'Operation could not be completed. Check Atlas worker availability and request status.',
           },
         },
         requestId,

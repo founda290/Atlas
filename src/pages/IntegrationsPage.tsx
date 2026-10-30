@@ -6,28 +6,43 @@ export function IntegrationsPage() {
     <>
       <PageHeader
         eyebrow="Atlas / Connections"
-        title="Connections are not available yet."
-        description="The hosted coding worker has not been deployed, and Atlas does not currently connect to external tools or model providers."
+        title="Browse providers. Connect when the worker is ready."
+        description="Atlas now includes a real provider and model directory. This deployment still has no hosted worker or secure provider credential connection, so browsing does not imply a model is connected."
       />
-      <Section eyebrow="Current status" title="No connected services are implied.">
+      <Section eyebrow="Current status" title="Catalog available; live connections are not.">
         <div className="public-split">
           <article className="editorial-card">
-            <Badge tone="warning">Not available</Badge>
-            <h3>Hosted AI execution</h3>
+            <Badge>Catalog available</Badge>
+            <h3>Atlas provider directory</h3>
             <p>
-              Atlas cannot send prompts to a model or run code in the hosted app. Chat sending stays
-              disabled until a real isolated worker and its safety controls are ready.
+              Browse 232 provider entries and their catalog-listed agent models, endpoint metadata,
+              capabilities and reference prices. OpenCode free-tier models are identified
+              separately; account eligibility and usage limits still apply.
+            </p>
+            <Button href="/models" secondary>
+              Browse providers and models
+            </Button>
+          </article>
+          <article className="editorial-card">
+            <Badge tone="warning">Not connected</Badge>
+            <h3>Hosted model worker</h3>
+            <p>
+              Real hosted messages need a private, authenticated worker with persistent execution,
+              account-scoped credential storage and request limits. The deployed site does not have
+              that worker. No provider keys are collected in the browser, and no fake responses are
+              generated.
             </p>
             <Button href="/chat" secondary>
               Open Chat
             </Button>
           </article>
           <article className="editorial-card">
-            <Badge>Not built</Badge>
-            <h3>External tools and providers</h3>
+            <Badge>Planned</Badge>
+            <h3>External tools and connectors</h3>
             <p>
-              Managed MCP, Git, CLI and third-party service connections are not available. Atlas
-              does not ask users to install a local coding runtime as a substitute.
+              Managed MCP, web-search, Git and other external-service connections are not yet
+              configured. The Chat activity panel will show only tool events reported by an actual
+              connected runtime; it does not fabricate searches or terminal output.
             </p>
             <Button href="/docs/runtime" secondary>
               Read the current boundary

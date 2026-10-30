@@ -119,6 +119,7 @@ export function AppRoutes() {
             <Route path="browser-projects/:browserId" element={<BrowserProjectsPage />} />
             <Route path="cloud-projects" element={<CloudProjectsPage />} />
             <Route path="chat" element={<ChatPage />} />
+            <Route path="chat/:sessionId" element={<ChatPage />} />
             <Route path="dashboard" element={<Navigate to="/chat" replace />} />
             <Route path="projects" element={<ProjectIndexRoute />} />
             <Route path="projects/:projectId" element={<ProjectDetailRoute />} />

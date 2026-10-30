@@ -1,20 +1,20 @@
 export const integrations = [
   {
-    id: 'opencode',
-    name: 'OpenCode',
-    category: 'Coding engines',
-    status: 'Available',
+    id: 'hosted-worker',
+    name: 'Isolated coding worker',
+    category: 'AI execution',
+    status: 'Unavailable',
     description:
-      'The implemented local agent runtime. Atlas owns the SDK connection on the backend.',
+      'A hosted worker with lifecycle controls and safety limits is required before hosted messaging can run.',
     guide: '/docs/runtime',
   },
   {
     id: 'providers',
-    name: 'OpenCode provider configuration',
+    name: 'Model providers',
     category: 'AI providers',
-    status: 'Available',
+    status: 'Unavailable',
     description:
-      'Use the provider credentials and default model configured locally in OpenCode. Atlas has no browser API-key vault.',
+      'A provider has not been selected for hosted Atlas. Credentials must remain server-side and are never stored in the browser.',
     guide: '/docs/providers',
   },
   {

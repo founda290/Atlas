@@ -195,6 +195,13 @@ const capabilityDetails = [
     detail: 'Projects are not synced to your account and do not run an AI agent.',
   },
   {
+    title: 'Atlas provider and model catalog',
+    status: 'Directory available',
+    text: 'Browse 232 real providers and the current agent-capable model metadata.',
+    detail:
+      'This is reference data only: provider credentials, live connections and hosted model execution are not enabled.',
+  },
+  {
     title: 'Project portability',
     status: 'Available',
     text: 'Export an actual browser-local project or import a valid Atlas project backup.',
@@ -352,7 +359,7 @@ export function StatusPage({ code = '404' }: { code?: string }) {
     '502': ['The hosted runtime is unavailable.', 'Hosted coding execution is not available yet.'],
     '503': [
       'The hosted service is unavailable.',
-      'Try again later. Atlas will not send work to a local runtime instead.',
+      'Try again later. Atlas will not silently switch to an unavailable execution service.',
     ],
     offline: [
       'You are working without a connection.',

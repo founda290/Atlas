@@ -42,7 +42,7 @@ export function SessionChanges({
         </button>
       </div>
       <p className="activity-notice">
-        Fetched on demand from OpenCode, not reconstructed from live events. This is a
+        Fetched on demand from the runtime, not reconstructed from live events. This is a
         runtime-reported session diff, not an authoritative filesystem or Git comparison. There are
         no apply, revert or save operations.
       </p>

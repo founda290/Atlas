@@ -250,7 +250,7 @@ function SessionWorkspace({ sessionId, projectId }: { sessionId: string; project
         </>
       )}
       <footer className="workspace-statusbar">
-        <span>OpenCode / local execution</span>
+        <span>Workspace runtime</span>
         <span>Workspace: {projectId}</span>
         <Link to="/docs/security">Not a sandbox ↗</Link>
       </footer>
