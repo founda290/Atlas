@@ -22,7 +22,7 @@ export const articles: Article[] = [
         heading: 'What is Atlas?',
         paragraphs: [
           'Atlas brings project context, coding sessions and an OpenCode agent into a browser interface. The React frontend calls a Node.js API; only the backend communicates with the local OpenCode SDK.',
-          'This is a trusted local development preview. You do not need an account. Account creation, billing and hosted execution are not enabled.',
+          'Accounts use Neon Auth when configured. Browser-local projects require no account or backend and stay on this device. Local OpenCode execution requires the trusted loopback backend. Cloud execution and billing remain disabled.',
         ],
       },
       {

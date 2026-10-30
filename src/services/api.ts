@@ -181,7 +181,7 @@ export const api = {
 
 // Integration boundaries: no speculative endpoints and no successful simulations.
 export const capabilities = {
-  authentication: false,
+  authentication: true,
   projectCrud: true,
   fileContent: true,
   fileWrite: true,
@@ -190,13 +190,3 @@ export const capabilities = {
   diff: true,
   terminalStream: false,
 } as const
-export async function authenticate(): Promise<never> {
-  throw new Error(
-    'Account authentication is not enabled in this local preview. No credentials were sent or stored. You can open the local workspace without an account.',
-  )
-}
-export async function register(): Promise<never> {
-  throw new Error(
-    'Account creation is not enabled. No account was created and no credentials were sent or stored.',
-  )
-}

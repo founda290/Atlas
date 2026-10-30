@@ -55,19 +55,19 @@ export function SettingsPage() {
         <div className="settings-content">
           <form onSubmit={submit}>
             <section id="settings-general">
-              <Panel title="General" eyebrow="Local identity">
+              <Panel title="General" eyebrow="Account & local settings">
                 <div className="settings-row">
                   <div>
-                    <h3>Local developer</h3>
+                    <h3>Your account</h3>
                     <p>
-                      No authenticated account is active. Profile editing and account saves are not
-                      enabled.
+                      Manage your real Neon Auth session, verification and sign-out on the account
+                      page. Display preferences remain local to this browser.
                     </p>
                   </div>
-                  <Badge>No account</Badge>
+                  <Badge>Neon Auth</Badge>
                 </div>
-                <Link className="text-link" to="/login">
-                  Account entry →
+                <Link className="text-link" to="/account">
+                  Manage account →
                 </Link>
               </Panel>
             </section>

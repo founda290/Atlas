@@ -1,3 +1,4 @@
+import { useAccount } from './hooks/account'
 import { useState, type ReactNode } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { NavigationDrawer } from './components/layout/NavigationDrawer'
@@ -128,7 +129,7 @@ export function SiteFooter() {
         </div>
         <div className="footer-base">
           <span>Atlas · powered by OpenCode</span>
-          <span>Local development preview · no hosted accounts or billing</span>
+          <span>Browser-local and local runtime workspaces · cloud execution disabled</span>
         </div>
       </PageContainer>
     </footer>
@@ -256,13 +257,13 @@ export function AppSidebar() {
         </Link>
       </div>
       <div className="sidebar-bottom">
-        <div className="connection-state">Local preview · no account required</div>
+        <SidebarAccount />
         <Link className="account-entry" to="/settings">
           <span className="account-avatar">
             <Icon name="settings" />
           </span>
           <span>
-            <strong>Local developer</strong>
+            <strong>Workspace settings</strong>
             <small>Preferences & runtime</small>
           </span>
         </Link>
@@ -271,6 +272,29 @@ export function AppSidebar() {
         </Link>
       </div>
     </aside>
+  )
+}
+function SidebarAccount() {
+  const { user, loading } = useAccount()
+  return (
+    <>
+      <div className="connection-state">
+        {loading
+          ? 'Checking account…'
+          : user
+            ? `Signed in · ${user.name}`
+            : 'Browser-local · no sign-in required'}
+      </div>
+      <Link className="text-link" to="/account">
+        {user ? 'Manage account' : 'Create account / sign in'}
+      </Link>
+      <Link className="text-link" to="/browser-projects">
+        Browser-local projects
+      </Link>
+      <Link className="text-link" to="/cloud-projects">
+        Cloud — disabled
+      </Link>
+    </>
   )
 }
 export function AppShell() {

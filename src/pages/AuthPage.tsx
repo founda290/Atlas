@@ -1,8 +1,9 @@
 import { useId, useRef, useState, type FormEvent } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AtlasMark } from '../components'
 import { Button, Dialog } from '../components/ui'
-import { authenticate, register } from '../services/api'
+import { account } from '../services/account'
+import { useAccount } from '../hooks/account'
 import { validateAccount, type AccountErrors, type AccountFields } from '../features/auth'
 function PasswordField({
   label,
@@ -53,6 +54,9 @@ function PasswordField({
   )
 }
 export function AuthPage({ signup = false }: { signup?: boolean }) {
+  const { refresh } = useAccount(),
+    navigate = useNavigate()
+  const [notice, setNotice] = useState('')
   const [fields, setFields] = useState<AccountFields>({
     name: '',
     email: '',
@@ -73,6 +77,7 @@ export function AuthPage({ signup = false }: { signup?: boolean }) {
   }
   async function submit(event: FormEvent) {
     event.preventDefault()
+    if (busy) return
     const nextErrors = validateAccount(fields, signup)
     setErrors(nextErrors)
     setError('')
@@ -84,7 +89,18 @@ export function AuthPage({ signup = false }: { signup?: boolean }) {
     }
     setBusy(true)
     try {
-      await (signup ? register() : authenticate())
+      await (signup
+        ? account.signUp(fields.name.trim(), fields.email.trim(), fields.password)
+        : account.signIn(fields.email.trim(), fields.password))
+      setFields((current) => ({ ...current, password: '', confirm: '' }))
+      const user = await refresh()
+      if (user) navigate('/browser-projects')
+      else
+        setNotice(
+          signup
+            ? 'Your registration was accepted. Check your email for a verification link, then sign in.'
+            : 'The sign-in request completed, but no session could be confirmed. Check cookie settings and try signing in again.',
+        )
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Account service is unavailable.')
     } finally {
@@ -99,13 +115,13 @@ export function AuthPage({ signup = false }: { signup?: boolean }) {
         <h1>{signup ? 'Make room for your next idea.' : 'Back to the work that matters.'}</h1>
         <p>Your projects, coding sessions and local agent in one focused place.</p>
         <div className="auth-status">
-          <strong>Local preview. No account required.</strong>
+          <strong>Your account. Your choice of workspace.</strong>
           <p>
-            Authentication and account creation are not enabled. These forms validate locally; no
-            credentials are sent or stored.
+            Sign in through Neon Auth. Browser-local projects remain on this device; signing in does
+            not upload them. Cloud projects are disabled for now.
           </p>
-          <Button href="/dashboard" secondary>
-            Explore the local workspace →
+          <Button href="/browser-projects" secondary>
+            Continue without an account →
           </Button>
         </div>
       </aside>
@@ -114,8 +130,8 @@ export function AuthPage({ signup = false }: { signup?: boolean }) {
         <h2 id="auth-title">{signup ? 'Create an account' : 'Sign in'}</h2>
         <p className="muted">
           {signup
-            ? 'Account creation is being prepared for a future release.'
-            : 'Account sign-in will be available when authentication is connected.'}
+            ? 'Create your Atlas account with email and password.'
+            : 'Sign in to your Atlas account.'}
         </p>
         <form onSubmit={(event) => void submit(event)} noValidate ref={form}>
           {signup && (
@@ -164,8 +180,8 @@ export function AuthPage({ signup = false }: { signup?: boolean }) {
           {signup ? (
             <>
               <p className="fine-print">
-                Use at least 12 characters. Do not enter a password you use elsewhere in this
-                preview.
+                Use a unique password with at least 12 characters. Passwords are sent only to your
+                configured Neon Auth service.
               </p>
               <PasswordField
                 name="confirm"
@@ -185,11 +201,11 @@ export function AuthPage({ signup = false }: { signup?: boolean }) {
                     aria-describedby={errors.terms ? 'terms-error' : undefined}
                   />
                   <span>
-                    I acknowledge the local preview limitations. Account creation is not enabled.
+                    I understand browser-local storage and the current execution limitations.
                   </span>
                 </label>
                 <button type="button" className="text-button" onClick={() => setTerms(true)}>
-                  Read the account & terms status
+                  Read account & data information
                 </button>
                 {errors.terms && (
                   <span className="field-error" id="terms-error">
@@ -208,12 +224,15 @@ export function AuthPage({ signup = false }: { signup?: boolean }) {
               {error}
             </div>
           )}
+          {notice && <p role="status">{notice}</p>}
+          {!account.configured && (
+            <p className="fine-print">
+              Neon Auth is not configured for this deployment. Setup is required before account
+              requests can be sent.
+            </p>
+          )}
           <Button type="submit" disabled={busy} className="full-width">
-            {busy
-              ? 'Checking availability…'
-              : signup
-                ? 'Create account — not enabled'
-                : 'Sign in — not enabled'}
+            {busy ? 'Please wait…' : signup ? 'Create account' : 'Sign in'}
           </Button>
         </form>
         <p className="auth-switch">
@@ -224,24 +243,53 @@ export function AuthPage({ signup = false }: { signup?: boolean }) {
       <Dialog
         open={params.get('reset') === 'true'}
         onClose={() => setParams({})}
-        title="Password reset is not enabled"
+        title="Reset your password"
       >
         <p>
-          Atlas has no account authentication backend, so it cannot send password-reset emails. No
-          request has been sent.
+          Enter your account email. If an account exists, Neon Auth will send a reset link. No
+          password is changed until you use that link.
         </p>
-        <Button href="/dashboard" secondary>
-          Open the local workspace
-        </Button>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            setBusy(true)
+            setError('')
+            void account
+              .requestReset(fields.email.trim())
+              .then(() =>
+                setNotice('If this email is registered, check your inbox for a reset link.'),
+              )
+              .catch((e) => setError(e.message))
+              .finally(() => setBusy(false))
+          }}
+        >
+          <label className="form-field">
+            Reset email
+            <input
+              type="email"
+              required
+              value={fields.email}
+              onChange={(event) => update('email', event.target.value)}
+            />
+          </label>
+          {error && <p role="alert">{error}</p>}
+          {notice && <p role="status">{notice}</p>}
+          <Button type="submit" disabled={busy}>
+            Send reset link
+          </Button>
+        </form>
       </Dialog>
-      <Dialog open={terms} onClose={() => setTerms(false)} title="Account & terms status">
+      <Dialog open={terms} onClose={() => setTerms(false)} title="Account & data information">
         <p>
-          No account service or commercial terms have been established for this development preview.
-          The acknowledgement is not acceptance of invented legal documents.
+          Neon Auth manages account credentials and sessions. Browser-local source stays in this
+          browser and is not automatically attached to your account. Cloud execution is disabled.
+          This acknowledgement is not acceptance of commercial terms or a substitute for a published
+          privacy policy.
         </p>
         <p>
-          Use Atlas only with a trusted local workspace. Do not submit secrets or production
-          credentials.
+          Use browser storage only on a trusted device, and OpenCode only with trusted local
+          workspaces. Never put provider keys in source or prompts. Your account password is sent
+          only to Neon Auth.
         </p>
         <Button href="/docs/security" secondary>
           Read execution limitations
