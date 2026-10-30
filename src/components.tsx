@@ -1,4 +1,10 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavigationDrawer } from './components/layout/NavigationDrawer'
+import { Button, Icon, type IconName } from './components/ui'
+import { usePreferences } from './hooks/preferences'
+import { AgentEmpty, EditorEmpty } from './features/workspace/WorkspaceStates'
+export { Button, Panel } from './components/ui'
 
 export const navItems = [
   ['/features', 'Features'],
@@ -6,75 +12,320 @@ export const navItems = [
   ['/pricing', 'Pricing'],
   ['/docs', 'Docs'],
 ] as const
-
-export function PageContainer({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function AtlasMark({ small = false }: { small?: boolean }) {
+  return (
+    <img
+      className={`atlas-mark ${small ? 'small' : ''}`}
+      src="/atlas-mark.svg"
+      alt=""
+      aria-hidden="true"
+    />
+  )
+}
+export function PageContainer({
+  children,
+  className = '',
+}: {
+  children: ReactNode
+  className?: string
+}) {
   return <div className={`page-container ${className}`}>{children}</div>
 }
-
-export function ButtonSkeleton({ children, secondary = false, tertiary = false, href, className = '', onClick, disabled = false }: { children: ReactNode; secondary?: boolean; tertiary?: boolean; href?: string; className?: string; onClick?: () => void; disabled?: boolean }) {
-  const classes = `button-skeleton ${secondary ? 'secondary' : ''} ${tertiary ? 'tertiary' : ''} ${className}`
-  return href ? <a className={classes} href={href}>{children}</a> : <button className={classes} onClick={onClick} disabled={disabled}>{children}</button>
+function PublicNavigation() {
+  return (
+    <>
+      {navItems.map(([href, label]) => (
+        <NavLink to={href} key={href}>
+          {label}
+        </NavLink>
+      ))}
+      <Link to="/login">Sign in</Link>
+      <Link to="/dashboard">Open workspace</Link>
+    </>
+  )
 }
-
-function AtlasMark({ small = false }: { small?: boolean }) {
-  return <img className={`atlas-mark ${small ? 'small' : ''}`} src="/atlas-mark.svg" alt="" aria-hidden="true" />
-}
-
-function ThemeToggle() {
-  const [dark, setDark] = useState(() => window.localStorage.getItem('atlas-theme') === 'dark')
-  useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; window.localStorage.setItem('atlas-theme', dark ? 'dark' : 'light') }, [dark])
-  return <button className="theme-toggle" type="button" aria-label={dark ? 'Use light theme' : 'Use dark theme'} aria-pressed={dark} onClick={() => setDark(value => !value)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d={dark ? 'M20.3 15.4A8.5 8.5 0 0 1 8.6 3.7 8.5 8.5 0 1 0 20.3 15.4Z' : 'M12 3v2m0 14v2M3 12h2m14 0h2m-3.6-6.4-1.4 1.4M6 18l-1.4 1.4m0-14.8L6 6m12 12 1.4 1.4M12 7.5A4.5 4.5 0 1 1 12 16.5 4.5 4.5 0 0 1 12 7.5Z'} /></svg></button>
-}
-
 export function SiteHeader() {
-  const [open, setOpen] = useState(false)
-  useEffect(() => { if (!open) return; const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }; document.addEventListener('keydown', closeOnEscape); return () => document.removeEventListener('keydown', closeOnEscape) }, [open])
-  return <header className="site-header">
-    <PageContainer className="header-inner">
-      <a className="wordmark" href="/" aria-label="Atlas home"><AtlasMark /><span>Atlas</span></a>
-      <nav className="desktop-nav" aria-label="Primary navigation">{navItems.map(([href, label]) => <a href={href} key={href}>{label}</a>)}</nav>
-      <div className="header-actions"><a className="sign-in" href="/login">Sign in</a><ButtonSkeleton href="/signup">Preview Atlas</ButtonSkeleton><ThemeToggle /><button className="menu-control" aria-expanded={open} aria-controls="mobile-navigation" onClick={() => setOpen(!open)}><span className="menu-icon" aria-hidden="true" /> <span className="sr-only">Toggle navigation</span></button></div>
-      {open && <><button className="mobile-nav-backdrop" aria-label="Close navigation" onClick={() => setOpen(false)} /><nav id="mobile-navigation" className="mobile-nav" aria-label="Mobile navigation"><div className="mobile-nav-head"><strong>Menu</strong><button className="mobile-nav-close" type="button" aria-label="Close navigation" onClick={() => setOpen(false)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button></div>{navItems.map(([href, label]) => <a href={href} key={href} onClick={() => setOpen(false)}>{label}</a>)}<a href="/integrations" onClick={() => setOpen(false)}>Providers & integrations</a><a href="/login" onClick={() => setOpen(false)}>Sign in</a><a className="mobile-nav-cta" href="/signup" onClick={() => setOpen(false)}>Preview Atlas</a></nav></>}
-    </PageContainer>
-  </header>
+  return (
+    <header className="site-header">
+      <PageContainer className="header-inner">
+        <Link className="wordmark" to="/" aria-label="Atlas home">
+          <AtlasMark />
+          <span>Atlas</span>
+        </Link>
+        <nav className="desktop-nav" aria-label="Primary navigation">
+          {navItems.map(([href, label]) => (
+            <NavLink to={href} key={href}>
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="header-actions">
+          <Link className="sign-in" to="/login">
+            Sign in
+          </Link>
+          <Button href="/dashboard">
+            Open workspace <span aria-hidden="true">↗</span>
+          </Button>
+          <NavigationDrawer label="Open site navigation">
+            <nav aria-label="Mobile primary navigation">
+              <PublicNavigation />
+            </nav>
+          </NavigationDrawer>
+        </div>
+      </PageContainer>
+    </header>
+  )
 }
-
 export function SiteFooter() {
   const groups = [
-    ['Product', [['Features', '/features'], ['Pricing', '/pricing']]],
-    ['Build with Atlas', [['Integrations', '/integrations'], ['Documentation', '/docs']]],
-    ['Account', [['Sign in', '/login'], ['Preview', '/signup']]],
+    {
+      title: 'Product',
+      links: [
+        ['Features', '/features'],
+        ['Early access', '/pricing'],
+        ['Workspace', '/dashboard'],
+      ],
+    },
+    {
+      title: 'Resources',
+      links: [
+        ['Integrations', '/integrations'],
+        ['Documentation', '/docs'],
+        ['Security', '/docs/security'],
+      ],
+    },
+    {
+      title: 'Account',
+      links: [
+        ['Sign in', '/login'],
+        ['Create account', '/signup'],
+      ],
+    },
   ]
-  return <footer className="site-footer"><PageContainer><div className="footer-top"><div><a className="wordmark" href="/"><AtlasMark small /><span>Atlas</span></a><p>A browser-based coding workspace for thoughtful software work.</p></div><div className="footer-links">{groups.map(([group, links]) => <div key={group as string}><h3>{group}</h3>{(links as string[][]).map(([label, href]) => <a href={href} key={href}>{label}</a>)}</div>)}</div></div><div className="footer-base"><span>Atlas · powered by OpenCode</span><span>Interface preview, not a connected service</span></div></PageContainer></footer>
+  return (
+    <footer className="site-footer">
+      <PageContainer>
+        <div className="footer-top">
+          <div>
+            <Link className="wordmark" to="/">
+              <AtlasMark small />
+              <span>Atlas</span>
+            </Link>
+            <p>A browser-based coding workspace for thoughtful software work.</p>
+          </div>
+          <div className="footer-links">
+            {groups.map((group) => (
+              <div key={group.title}>
+                <h3>{group.title}</h3>
+                {group.links.map(([label, href]) => (
+                  <Link to={href} key={href}>
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="footer-base">
+          <span>Atlas · powered by OpenCode</span>
+          <span>Local development preview · no hosted accounts or billing</span>
+        </div>
+      </PageContainer>
+    </footer>
+  )
 }
-
-export function Section({ eyebrow, title, intro, children, className = '' }: { eyebrow?: string; title?: string; intro?: string; children: ReactNode; className?: string }) {
-  return <section className={`section ${className}`}><PageContainer>{eyebrow && <p className="eyebrow">{eyebrow}</p>}{title && <h2>{title}</h2>}{intro && <p className="section-intro">{intro}</p>}{children}</PageContainer></section>
+export function PublicLayout() {
+  return (
+    <>
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+      <SiteHeader />
+      <main id="main-content" tabIndex={-1}>
+        <Outlet />
+      </main>
+      <SiteFooter />
+    </>
+  )
 }
-
-export function FeatureCard({ index, title, description }: { index: number; title: string; description: string }) {
-  return <article className="feature-card"><div className="card-index">0{index}</div><h3>{title}</h3><p>{description}</p></article>
+export function Section({
+  eyebrow,
+  title,
+  intro,
+  children,
+  className = '',
+}: {
+  eyebrow?: string
+  title?: string
+  intro?: string
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <section className={`section ${className}`}>
+      <PageContainer>
+        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+        {title && <h2>{title}</h2>}
+        {intro && <p className="section-intro">{intro}</p>}
+        {children}
+      </PageContainer>
+    </section>
+  )
 }
-
-export function IntegrationCard({ label, detail }: { label: string; detail: string }) {
-  return <div className="integration-card"><span className="integration-mark" aria-hidden="true" /><div><strong>{label}</strong><span>{detail}</span></div></div>
+export function FeatureCard({
+  index,
+  title,
+  description,
+}: {
+  index: number
+  title: string
+  description: string
+}) {
+  return (
+    <article className="feature-card">
+      <div className="card-index">{String(index).padStart(2, '0')}</div>
+      <h3>{title}</h3>
+      <p>{description}</p>
+    </article>
+  )
 }
-
 export function ProductPreview() {
-  return <div className="product-preview" aria-label="Illustrative coding workspace preview"><div className="preview-header"><span className="preview-project"><AtlasMark small /> atlas-project</span><span className="preview-status"><i /> Preview mode</span></div><div className="preview-body"><aside className="preview-files"><span className="preview-label">Files</span><strong>atlas-project</strong>{['src', 'App.tsx', 'components', 'styles.css', 'README.md'].map((item, i) => <div className={i === 1 ? 'selected' : ''} key={item}><span className="file-dot" />{item}</div>)}</aside><div className="preview-editor"><div className="editor-tabs"><span className="active">App.tsx</span><span>styles.css</span><span>README.md</span></div><div className="code-lines"><i style={{ width: '35%' }} /><i style={{ width: '62%' }} /><i style={{ width: '48%' }} /><i style={{ width: '75%' }} /><i style={{ width: '57%' }} /><i style={{ width: '69%' }} /><i style={{ width: '31%' }} /></div><div className="terminal-panel"><span>Terminal</span><p>$ awaiting a workspace session</p><small>Illustrative output only</small></div></div><aside className="preview-agent"><span className="preview-label">Agent panel</span><div className="agent-note">A calm place to shape the next change.</div><div className="agent-line" /><div className="agent-line short" /><span className="preview-label model-label">Model</span><strong>Provider selection</strong></aside></div></div>
+  return (
+    <figure className="workspace-preview">
+      <div className="preview-header">
+        <span className="preview-project">
+          <AtlasMark small /> Local workspace
+        </span>
+        <span className="badge">Interface preview · not connected</span>
+      </div>
+      <div className="product-workbench">
+        <aside>
+          <p className="panel-eyebrow">Explorer</p>
+          <p>No inventory loaded</p>
+        </aside>
+        <section>
+          <div className="preview-tab">Editor / read-only</div>
+          <EditorEmpty />
+        </section>
+        <section>
+          <div className="preview-tab">Agent conversation</div>
+          <AgentEmpty />
+        </section>
+      </div>
+      <figcaption>
+        The same panels used in Atlas. Files and messages appear only after the local API returns
+        them.
+      </figcaption>
+    </figure>
+  )
 }
-
-export function AppSidebar({ active }: { active: string }) {
-  const items = [['Dashboard', '/dashboard'], ['Projects', '/projects'], ['Models', '/models'], ['Integrations', '/integrations/manage'], ['Settings', '/settings']]
-  return <aside className="app-sidebar"><div className="sidebar-brand"><a className="wordmark" href="/dashboard"><AtlasMark small /><span>Atlas</span></a><span className="workspace-caption">WORKSPACE</span></div><nav aria-label="Application navigation">{items.map(([label, href]) => <a className={label.toLowerCase() === active ? 'active' : ''} href={href} key={href}><span className={`nav-glyph glyph-${label.toLowerCase()}`} aria-hidden="true" />{label}</a>)}</nav><div className="sidebar-bottom"><div className="connection-state"><i /> Preview environment</div><a className="account-entry" href="/settings"><span className="account-avatar">A</span><span><strong>Account</strong><small>Settings & access</small></span></a></div></aside>
+const appLinks: { label: string; href: string; icon: IconName }[] = [
+  { label: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
+  { label: 'Projects', href: '/projects', icon: 'folder' },
+  { label: 'Models', href: '/models', icon: 'model' },
+  { label: 'Integrations', href: '/integrations/manage', icon: 'integration' },
+  { label: 'Settings', href: '/settings', icon: 'settings' },
+]
+export function AppSidebar() {
+  return (
+    <aside className="app-sidebar">
+      <div className="sidebar-brand">
+        <Link className="wordmark" to="/dashboard">
+          <AtlasMark small />
+          <span>Atlas</span>
+        </Link>
+        <span className="workspace-caption">LOCAL WORKSPACE</span>
+      </div>
+      <nav aria-label="Application navigation">
+        {appLinks.map((item) => (
+          <NavLink to={item.href} key={item.href}>
+            <Icon name={item.icon} />
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
+      <div className="sidebar-guide">
+        <span className="panel-eyebrow">Your environment</span>
+        <p>
+          One local workspace.
+          <br />
+          Your runtime. Your machine.
+        </p>
+        <Link to="/docs/getting-started">
+          Setup guide <span aria-hidden="true">↗</span>
+        </Link>
+      </div>
+      <div className="sidebar-bottom">
+        <div className="connection-state">Local preview · no account required</div>
+        <Link className="account-entry" to="/settings">
+          <span className="account-avatar">
+            <Icon name="settings" />
+          </span>
+          <span>
+            <strong>Local developer</strong>
+            <small>Preferences & runtime</small>
+          </span>
+        </Link>
+        <Link className="back-to-site" to="/">
+          Back to website <span aria-hidden="true">↗</span>
+        </Link>
+      </div>
+    </aside>
+  )
 }
-
-export function AppShell({ children, active }: { children: ReactNode; active: string }) {
-  const [drawer, setDrawer] = useState(false)
-  useEffect(() => { if (!drawer) return; const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setDrawer(false) }; document.addEventListener('keydown', closeOnEscape); return () => document.removeEventListener('keydown', closeOnEscape) }, [drawer])
-  return <div className="app-shell"><header className="app-header"><button className="app-menu-control" onClick={() => setDrawer(!drawer)} aria-expanded={drawer} aria-label="Toggle application navigation"><span className="menu-icon" /></button><div className="app-header-context"><span>Workspace</span><strong>Atlas project environment</strong></div><div className="app-account-mobile"><ThemeToggle /><span className="account-avatar">A</span></div></header>{drawer && <><button className="drawer-backdrop" aria-label="Close workspace navigation" onClick={() => setDrawer(false)} /><div className="drawer"><button className="drawer-close" type="button" aria-label="Close workspace navigation" onClick={() => setDrawer(false)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button><AppSidebar active={active} /></div></>}<AppSidebar active={active} /><main className="app-main">{children}</main></div>
-}
-
-export function Panel({ title, eyebrow, children, className = '' }: { title: string; eyebrow?: string; children: ReactNode; className?: string }) {
-  return <section className={`work-panel ${className}`}>{eyebrow && <span className="panel-eyebrow">{eyebrow}</span>}<div className="panel-heading"><h2>{title}</h2><span className="panel-more">•••</span></div>{children}</section>
+export function AppShell() {
+  const { preferences, save } = usePreferences()
+  const [themeError, setThemeError] = useState('')
+  const { pathname } = useLocation()
+  const current = appLinks.find((item) => pathname.startsWith(item.href))?.label ?? 'Workspace'
+  return (
+    <div className={`app-shell density-${preferences.density}`} data-app-theme={preferences.theme}>
+      <a className="skip-link" href="#app-content">
+        Skip to content
+      </a>
+      <div className="desktop-sidebar">
+        <AppSidebar />
+      </div>
+      <header className="app-header">
+        <NavigationDrawer label="Open workspace navigation" app>
+          <AppSidebar />
+        </NavigationDrawer>
+        <div className="app-header-context">
+          <span>LOCAL / ATLAS</span>
+          <strong>{current}</strong>
+        </div>
+        <div className="app-header-actions">
+          <Link to="/docs" className="header-docs">
+            Documentation <span aria-hidden="true">↗</span>
+          </Link>
+          <button
+            className="icon-button"
+            type="button"
+            aria-label={`Use ${preferences.theme === 'dark' ? 'light' : 'dark'} workspace theme`}
+            onClick={() => {
+              try {
+                save({ ...preferences, theme: preferences.theme === 'dark' ? 'light' : 'dark' })
+                setThemeError('')
+              } catch {
+                setThemeError('Browser storage is unavailable. The theme was not saved.')
+              }
+            }}
+          >
+            <Icon name="sun" />
+          </button>
+        </div>
+      </header>
+      <main id="app-content" className="app-main" tabIndex={-1}>
+        <Outlet />
+      </main>
+      {themeError && (
+        <div className="theme-notice error-state" role="alert">
+          {themeError}
+          <button type="button" className="text-button" onClick={() => setThemeError('')}>
+            Dismiss
+          </button>
+        </div>
+      )}
+    </div>
+  )
 }
