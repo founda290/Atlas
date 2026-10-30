@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../services/api'
-import { readSessions, saveSession } from '../services/session-store'
 import {
   asRecord,
   asString,
@@ -12,6 +11,7 @@ import {
 import type { Message, RuntimeEvent, SessionStatus } from '../types/api'
 import { useResource } from './useResource'
 const statuses: SessionStatus[] = [
+  'interrupted',
   'ready',
   'running',
   'cancelling',
@@ -19,8 +19,11 @@ const statuses: SessionStatus[] = [
   'cancelled',
   'failed',
 ]
-export function useAgentSession(id: string) {
-  const loader = useCallback((signal: AbortSignal) => api.history(id, signal), [id])
+export function useAgentSession(id: string, projectId?: string) {
+  const loader = useCallback(
+    (signal: AbortSignal) => api.history(id, signal, projectId),
+    [id, projectId],
+  )
   const history = useResource(loader)
   const [messages, setMessages] = useState<Message[]>([])
   const [events, setEvents] = useState<RuntimeEvent[]>([])
@@ -31,18 +34,13 @@ export function useAgentSession(id: string) {
   const [submitting, setSubmitting] = useState(false)
   const [revision, setRevision] = useState(0)
   const partText = useRef(new Map<string, { messageId: string; text: string }>())
+  const partKinds = useRef(new Map<string, string>())
   const roles = useRef(new Map<string, 'user' | 'assistant'>())
-  const valid = !!history.data
+  const valid = !!history.data && history.data.resumable !== false
   const busy = status === 'running' || status === 'cancelling' || submitting
-  const setKnownStatus = useCallback(
-    (next: SessionStatus) => {
-      setStatus(next)
-      const record = readSessions().find((session) => session.id === id)
-      if (record && record.status !== next)
-        saveSession({ ...record, status: next, updated: Date.now() })
-    },
-    [id],
-  )
+  const setKnownStatus = useCallback((next: SessionStatus) => {
+    setStatus(next)
+  }, [])
   useEffect(() => {
     setMessages([])
     setEvents([])
@@ -51,10 +49,13 @@ export function useAgentSession(id: string) {
     setStatus('ready')
     setStream('connecting')
     partText.current.clear()
+    partKinds.current.clear()
     roles.current.clear()
-  }, [id])
+  }, [id, projectId])
   useEffect(() => {
     if (!history.data) return
+    if (history.data.error) setError(history.data.error)
+    if (history.data.status) setKnownStatus(history.data.status)
     const historyMessages = history.data.messages
     const parsed = parseMessages(historyMessages)
     setMessages(parsed)
@@ -63,10 +64,12 @@ export function useAgentSession(id: string) {
       const fromHistory = historyDiffs(historyMessages)
       return fromHistory.length ? fromHistory : current
     })
-  }, [history.data])
+  }, [history.data, setKnownStatus])
   useEffect(() => {
     if (!valid) return
-    const source = new EventSource(`/api/v1/sessions/${encodeURIComponent(id)}/events`)
+    const source = new EventSource(
+      `/api/v1/sessions/${encodeURIComponent(id)}/events${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''}`,
+    )
     const seen = new Set<string>()
     const connected = (event: MessageEvent) => {
       setStream('connected')
@@ -109,8 +112,32 @@ export function useAgentSession(id: string) {
             )
           }
         }
+        if (type === 'session.error')
+          setError(
+            asString(raw.error) || 'Runtime execution error; check local provider configuration.',
+          )
         if (type === 'message.part.updated') {
           const part = asRecord(data.part)
+          if (typeof part.id === 'string' && typeof part.type === 'string')
+            partKinds.current.set(part.id, part.type)
+        }
+        if (
+          type === 'message.part.updated' ||
+          (type === 'message.part.delta' &&
+            data.field === 'text' &&
+            partKinds.current.get(asString(data.partID)) === 'text')
+        ) {
+          const part =
+            type === 'message.part.delta'
+              ? {
+                  type: 'text',
+                  messageID: data.messageID,
+                  id: data.partID,
+                  text:
+                    (partText.current.get(asString(data.partID))?.text ?? '') +
+                    asString(data.delta),
+                }
+              : asRecord(data.part)
           const messageId = asString(part.messageID)
           const partId = asString(part.id)
           if (messageId && partId && part.type === 'text') {
@@ -166,6 +193,7 @@ export function useAgentSession(id: string) {
       'session.cancelled',
       'message.updated',
       'message.part.updated',
+      'message.part.delta',
       'message.delta',
       'message.completed',
       'tool.started',
@@ -181,9 +209,9 @@ export function useAgentSession(id: string) {
     types.forEach((type) => source.addEventListener(type, receive))
     source.onerror = () => setStream('reconnecting')
     return () => source.close()
-  }, [id, valid, history.reload, setKnownStatus])
+  }, [id, projectId, valid, history.reload, setKnownStatus])
   async function send(text: string) {
-    if (busy || !text.trim()) return false
+    if (busy || !text.trim() || history.data?.resumable === false) return false
     if (text.length > 20_000) {
       setError('Instructions must be under 20,000 characters.')
       return false
@@ -191,7 +219,7 @@ export function useAgentSession(id: string) {
     setSubmitting(true)
     setError('')
     try {
-      const result = await api.prompt(id, text.trim())
+      const result = await api.prompt(id, text.trim(), projectId)
       setKnownStatus(result.status)
       return true
     } catch (failure) {
@@ -204,7 +232,7 @@ export function useAgentSession(id: string) {
   async function cancel() {
     setError('')
     try {
-      const result = await api.cancel(id)
+      const result = await api.cancel(id, projectId)
       setKnownStatus(result.status)
       history.reload()
     } catch (failure) {

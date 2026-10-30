@@ -10,6 +10,21 @@ export function asString(value: unknown) {
 export function parseMessages(items: unknown[]): Message[] {
   return items.flatMap((item) => {
     const message = asRecord(item)
+    if (
+      typeof message.id === 'string' &&
+      (message.role === 'user' || message.role === 'assistant') &&
+      typeof message.content === 'string'
+    )
+      return [
+        {
+          id: message.id,
+          role: message.role,
+          text: message.content,
+          tools: Array.isArray(message.tools)
+            ? message.tools.filter((item): item is string => typeof item === 'string')
+            : [],
+        },
+      ]
     const info = asRecord(message.info)
     if (typeof info.id !== 'string' || (info.role !== 'user' && info.role !== 'assistant'))
       return []
@@ -67,7 +82,9 @@ export interface FileNode {
   bytes?: number
   file: boolean
 }
-export function buildFileTree(files: { path: string; bytes?: number }[]): FileNode[] {
+export function buildFileTree(
+  files: { path: string; bytes?: number; kind?: string }[],
+): FileNode[] {
   const roots: FileNode[] = []
   for (const file of files) {
     let nodes = roots
@@ -79,7 +96,7 @@ export function buildFileTree(files: { path: string; bytes?: number }[]): FileNo
         node = {
           name,
           path: fullPath,
-          file: index === parts.length - 1,
+          file: index === parts.length - 1 && file.kind !== 'directory',
           children: [],
           bytes: index === parts.length - 1 ? file.bytes : undefined,
         }

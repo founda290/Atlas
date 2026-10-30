@@ -1,43 +1,60 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Badge, Button, ErrorState, Loading, Tabs } from '../components/ui'
 import { Activity } from '../features/workspace/Activity'
-import { SessionChanges } from '../features/workspace/SessionChanges'
+import { GitChanges } from '../features/workspace/GitChanges'
+import { FileEditor } from '../features/workspace/FileEditor'
 import { Conversation } from '../features/workspace/Conversation'
-import { FileDetails, FileExplorer } from '../features/workspace/FileExplorer'
-import { EditorEmpty } from '../features/workspace/WorkspaceStates'
-import { NewSessionButton } from '../features/projects'
+import { FileExplorer } from '../features/workspace/FileExplorer'
+import { NewSessionButton, ModelPicker } from '../features/projects'
 import { usePreferences } from '../hooks/preferences'
 import { useAgentSession } from '../hooks/useAgentSession'
 import { useResource } from '../hooks/useResource'
 import { useSessions } from '../hooks/useSessions'
 import { api } from '../services/api'
-import { WORKSPACE_ID } from '../types/api'
+import type { ModelSelection } from '../types/api'
 import { MissingProject } from './ProjectPages'
-const loadWorkspace = (signal: AbortSignal) => api.workspace(signal)
 export function WorkspacePage() {
   const { projectId, sessionId } = useParams()
-  if (projectId !== WORKSPACE_ID) return <MissingProject />
+  if (!projectId) return <MissingProject />
   if (!sessionId || !/^[A-Za-z0-9_-]{8,120}$/.test(sessionId))
     return (
       <div className="app-page-body">
         <ErrorState message="This session identifier is invalid." />
-        <Button href={`/projects/${WORKSPACE_ID}`} secondary>
+        <Button href={`/projects/${projectId}`} secondary>
           Back to project
         </Button>
       </div>
     )
-  return <SessionWorkspace key={sessionId} sessionId={sessionId} />
+  return (
+    <SessionWorkspace
+      key={`${projectId}:${sessionId}`}
+      sessionId={sessionId}
+      projectId={projectId}
+    />
+  )
 }
-function SessionWorkspace({ sessionId }: { sessionId: string }) {
+function SessionWorkspace({ sessionId, projectId }: { sessionId: string; projectId: string }) {
   const navigate = useNavigate()
   const { preferences } = usePreferences()
-  const session = useAgentSession(sessionId)
+  const session = useAgentSession(sessionId, projectId)
+  const loadWorkspace = useCallback(
+    (signal: AbortSignal) => api.workspace(signal, projectId),
+    [projectId],
+  )
   const workspace = useResource(loadWorkspace)
-  const records = useSessions().filter((record) => record.workspaceId === WORKSPACE_ID)
+  const records = useSessions(projectId)
   const record = records.find((item) => item.id === sessionId)
   const [view, setView] = useState<'agent' | 'files' | 'activity' | 'changes'>('agent')
   const [selected, setSelected] = useState('')
+  const [fileRevision, setFileRevision] = useState(0)
+  const refreshFiles = () => {
+    workspace.reload()
+    setFileRevision((r) => r + 1)
+  }
+  const [selectionRevision, setSelectionRevision] = useState(0)
+  const [pendingModel, setPendingModel] = useState<ModelSelection>()
+  const [modelError, setModelError] = useState('')
   const statusLabel = !session.history.data
     ? session.history.loading
       ? 'Checking session'
@@ -45,7 +62,6 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
     : session.stream === 'connected'
       ? session.status
       : 'Status unverified'
-  const file = workspace.data?.files.find((item) => item.path === selected)
   useEffect(() => {
     if (session.revision) workspace.reload()
   }, [session.revision, workspace.reload])
@@ -56,7 +72,7 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
           <nav aria-label="Breadcrumb">
             <Link to="/projects">Projects</Link>
             <span aria-hidden="true">/</span>
-            <Link to={`/projects/${WORKSPACE_ID}`}>Local test workspace</Link>
+            <Link to={`/projects/${projectId}`}>Project workspace</Link>
           </nav>
           <h1>{record?.title ?? 'Coding session'}</h1>
           <code>{sessionId}</code>
@@ -73,7 +89,7 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
           >
             {statusLabel}
           </Badge>
-          <NewSessionButton label="New session" />
+          <NewSessionButton label="New session" projectId={projectId} />
         </div>
       </header>
       <div className="workspace-navigation">
@@ -96,9 +112,7 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
             id="session-switcher"
             value={sessionId}
             onChange={(event) => {
-              navigate(
-                `/projects/${WORKSPACE_ID}/sessions/${encodeURIComponent(event.target.value)}`,
-              )
+              navigate(`/projects/${projectId}/sessions/${encodeURIComponent(event.target.value)}`)
             }}
           >
             <option value={sessionId}>{record?.title ?? 'Current session'}</option>
@@ -121,7 +135,7 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
             The session may have disappeared after a backend restart. Atlas does not substitute
             another session.
           </p>
-          <Button href={`/projects/${WORKSPACE_ID}`} secondary>
+          <Button href={`/projects/${projectId}`} secondary>
             Return to project
           </Button>
         </div>
@@ -138,6 +152,39 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
               Refresh messages
             </button>
           </div>
+          {session.history.data?.historical && (
+            <p className="activity-notice">
+              Historical session: stored conversation is available, but this runtime session cannot
+              currently be resumed. Start a new session or refresh after restoring the runtime.
+            </p>
+          )}
+          <details className="session-model-picker">
+            <summary>Session model</summary>
+            <p>
+              Current model:{' '}
+              {record?.model
+                ? `${record.model.providerID}/${record.model.modelID}`
+                : 'No explicit selection'}
+            </p>
+            <ModelPicker projectId={projectId} onChange={setPendingModel} />
+            <Button
+              disabled={!pendingModel || session.busy}
+              onClick={() => {
+                if (pendingModel)
+                  void api
+                    .setModel(sessionId, projectId, pendingModel)
+                    .then(() => {
+                      setPendingModel(undefined)
+                      setModelError('')
+                      window.dispatchEvent(new Event('atlas:sessions'))
+                    })
+                    .catch((error) => setModelError(error.message))
+              }}
+            >
+              Apply model to session
+            </Button>
+            {modelError && <p role="alert">{modelError}</p>}
+          </details>
           {session.error && (
             <div className="error-state" role="alert">
               {session.error}
@@ -156,20 +203,26 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
                 <FileExplorer
                   files={workspace.data?.files ?? []}
                   selected={selected}
-                  select={(path) => setSelected(path)}
-                  refresh={workspace.reload}
+                  select={(path) => {
+                    setSelected(path)
+                    setSelectionRevision((r) => r + 1)
+                  }}
+                  refresh={refreshFiles}
                 />
               )}
             </aside>
             <section
               className={`workspace-editor ${preferences.wrapCode ? 'wrap-code' : ''}`}
-              aria-label="Read-only file viewer"
+              aria-label="Project file editor"
             >
-              <div className="workbench-panel-header">
-                <h2>{file ? file.path.split('/').pop() : 'File details'}</h2>
-                <Badge>Read-only</Badge>
-              </div>
-              {file ? <FileDetails file={file} revision={session.revision} /> : <EditorEmpty />}
+              <FileEditor
+                projectId={projectId}
+                selected={selected}
+                selectionRevision={selectionRevision}
+                revision={session.revision + fileRevision}
+                readOnly={session.busy}
+                onChange={refreshFiles}
+              />
             </section>
             <div className="workspace-agent">
               <Conversation
@@ -185,11 +238,12 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
               <Activity events={session.events} />
             </div>
             <div className="workspace-changes">
-              <SessionChanges
-                key={sessionId}
-                sessionId={sessionId}
+              <GitChanges
+                key={projectId}
+                projectId={projectId}
                 active={view === 'changes'}
-                revision={session.revision}
+                revision={session.revision + fileRevision}
+                onChange={refreshFiles}
               />
             </div>
           </div>
@@ -197,7 +251,7 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
       )}
       <footer className="workspace-statusbar">
         <span>OpenCode / local execution</span>
-        <span>Workspace: {WORKSPACE_ID}</span>
+        <span>Workspace: {projectId}</span>
         <Link to="/docs/security">Not a sandbox ↗</Link>
       </footer>
     </div>

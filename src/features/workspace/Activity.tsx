@@ -9,8 +9,9 @@ export function Activity({ events }: { events: RuntimeEvent[] }) {
         <Badge>Live events only</Badge>
       </div>
       <p className="activity-notice">
-        Actual events received during this connection. Activity is not replayed or persisted. A
-        verified terminal-output stream is not available.
+        Actual events received during this connection. The live feed is not replayed; bounded
+        activity metadata is saved on the project overview. A verified terminal-output stream is not
+        available.
       </p>
       {events.length ? (
         <ol className="event-list">

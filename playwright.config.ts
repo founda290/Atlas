@@ -13,9 +13,17 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
   },
-  webServer: {
-    command: 'npm run dev -- --port 5173 --strictPort',
-    url: 'http://127.0.0.1:5173',
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: [
+    {
+      command: 'npm run server:start',
+      url: 'http://127.0.0.1:8787/api/v1/health',
+      reuseExistingServer: !process.env.CI,
+      env: { ATLAS_DATA_DIR: '.atlas/e2e', DATABASE_URL: '', ATLAS_WORKSPACE_ROOT: '' },
+    },
+    {
+      command: 'npm run dev -- --port 5173 --strictPort',
+      url: 'http://127.0.0.1:5173',
+      reuseExistingServer: !process.env.CI,
+    },
+  ],
 })

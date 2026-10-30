@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 const routes = [
   '/',
   '/features',
@@ -9,8 +10,8 @@ const routes = [
   '/signup',
   '/dashboard',
   '/projects',
-  '/projects/atlas-test-workspace',
-  '/projects/atlas-test-workspace/sessions/missing-session',
+  '/projects/11111111-1111-4111-8111-111111111111',
+  '/projects/11111111-1111-4111-8111-111111111111/sessions/missing-session',
   '/models',
   '/integrations/manage',
   '/settings',
@@ -174,19 +175,15 @@ test('account forms validate without network credential submission', async ({ pa
   await expect(page.getByRole('dialog')).toContainText('No request has been sent')
   expect(requests).toEqual([])
 })
-test('search and view controls work; unsupported project actions explain limits', async ({
-  page,
-}) => {
+test('project search and real creation controls plus integration filters', async ({ page }) => {
   await page.goto('/projects')
   await stable(page)
   await page.getByRole('searchbox', { name: 'Search projects' }).fill('not-a-project')
   await expect(page.getByText('No matching projects', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Clear search' }).click()
-  await expect(page.getByRole('heading', { name: 'Local test workspace' })).toBeVisible()
-  await page.getByRole('tab', { name: 'List', exact: true }).click()
-  await expect(page.locator('.projects-list')).toBeVisible()
+  await page.getByRole('searchbox', { name: 'Search projects' }).fill('')
+  await page.getByRole('button', { name: 'List view' }).click()
   await page.getByRole('button', { name: 'New project' }).click()
-  await expect(page.getByRole('dialog')).toContainText('no project has been created')
+  await expect(page.getByRole('dialog')).toContainText('backend-managed location')
   await page.keyboard.press('Escape')
   await page.goto('/integrations')
   await page
@@ -196,39 +193,59 @@ test('search and view controls work; unsupported project actions explain limits'
 })
 // Test-only runtime fixtures. None of these records is imported by product code.
 async function fixtureSession(page: Page) {
-  await page.route('**/api/v1/workspaces/atlas-test-workspace/file?*', (route) => {
-    const file = new URL(route.request().url()).searchParams.get('path') ?? ''
-    const content = "export const atlasFixture = 'read-only UI fixture'\n"
-    return route.fulfill({
-      json: {
-        data: {
-          workspaceId: 'atlas-test-workspace',
-          path: file,
-          content,
-          bytes: content.length,
-          encoding: 'utf-8',
-          readOnly: true,
+  await page.route(
+    '**/api/v1/projects/11111111-1111-4111-8111-111111111111/files/content?*',
+    (route) => {
+      const file = new URL(route.request().url()).searchParams.get('path') ?? ''
+      const content = "export const atlasFixture = 'read-only UI fixture'\n"
+      return route.fulfill({
+        json: {
+          data: {
+            workspaceId: '11111111-1111-4111-8111-111111111111',
+            path: file,
+            content,
+            bytes: content.length,
+            encoding: 'utf-8',
+            readOnly: true,
+            version: 'fixture-version',
+            modifiedAt: Date.now(),
+          },
         },
-      },
-    })
-  })
-  await page.route('**/api/v1/sessions/test-session-id/diff', (route) =>
+      })
+    },
+  )
+  await page.route('**/api/v1/projects/11111111-1111-4111-8111-111111111111/diff?*', (route) =>
     route.fulfill({
       json: {
         data: {
           sessionId: 'test-session-id',
           diffs: [
-            { file: 'src/test.ts', before: 'old\n', after: 'new\n', additions: 1, deletions: 1 },
+            {
+              file: 'src/test.ts',
+              path: 'src/test.ts',
+              status: ' M',
+              version: 'fixture-git',
+              before: 'old\n',
+              after: 'new\n',
+              unified: '-old\n+new\n',
+              additions: 1,
+              deletions: 1,
+            },
           ],
           omitted: 0,
-          source: 'opencode-session',
-          authoritativeFilesystem: false,
+          repository: true,
+          branch: 'fixture-main',
+          files: [],
+          attribution: 'unattributed',
+          comparison: 'working',
+          source: 'git',
+          authoritativeFilesystem: true,
           fetchedAt: Date.now(),
         },
       },
     }),
   )
-  await page.route('**/api/v1/sessions/test-session-id/messages', async (route) => {
+  await page.route('**/api/v1/sessions/test-session-id/messages?*', async (route) => {
     if (route.request().method() === 'POST')
       return route.fulfill({ json: { data: { status: 'running' } } })
     await route.fulfill({
@@ -269,14 +286,14 @@ async function fixtureSession(page: Page) {
       },
     })
   })
-  await page.route('**/api/v1/sessions/test-session-id/cancel', (route) =>
+  await page.route('**/api/v1/sessions/test-session-id/cancel?*', (route) =>
     route.fulfill({ json: { data: { status: 'cancelled', cancelled: true } } }),
   )
-  await page.route('**/api/v1/workspaces/atlas-test-workspace/status', (route) =>
+  await page.route('**/api/v1/workspaces/11111111-1111-4111-8111-111111111111/status', (route) =>
     route.fulfill({
       json: {
         data: {
-          workspaceId: 'atlas-test-workspace',
+          workspaceId: '11111111-1111-4111-8111-111111111111',
           files: [
             { path: 'src/test.ts', bytes: 10, kind: 'file' },
             { path: 'README.md', bytes: 50, kind: 'file' },
@@ -318,7 +335,7 @@ for (const width of [360, 390, 430, 768, 1024, 1440]) {
   test(`workspace interactions at ${width}px using explicit test fixtures`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
     await fixtureSession(page)
-    await page.goto('/projects/atlas-test-workspace/sessions/test-session-id')
+    await page.goto('/projects/11111111-1111-4111-8111-111111111111/sessions/test-session-id')
     await stable(page)
     await expect(page.locator('.stream-status')).toContainText('Event stream connected')
     await expect(page.getByText('Test-only assistant response.')).toBeVisible()
@@ -361,7 +378,7 @@ test('API failures stay visible instead of returning invented data', async ({ pa
   for (const route of [
     '/dashboard',
     '/projects',
-    '/projects/atlas-test-workspace',
+    '/projects/11111111-1111-4111-8111-111111111111',
     '/models',
     '/integrations/manage',
     '/settings',
@@ -372,24 +389,32 @@ test('API failures stay visible instead of returning invented data', async ({ pa
   }
 })
 
-test('session creation failure stays in its dialog without recording a fake session', async ({
-  page,
-}) => {
-  await page.route('**/api/v1/sessions', (route) =>
-    route.fulfill({
-      status: 503,
-      json: { data: { error: { message: 'Test-only runtime unavailable' } } },
-    }),
+test('session creation failure stays visible and never fabricates a session', async ({ page }) => {
+  const name = `Failure ${Date.now()}`
+  const response = await page.request.post('/api/v1/projects', {
+    data: { name, description: 'Browser test', location: 'managed' },
+  })
+  expect(response.status()).toBe(201)
+  const p = (await response.json()).data
+  await page.route('**/api/v1/providers?*', (route) =>
+    route.fulfill({ json: { data: { providers: [] } } }),
   )
-  await page.goto('/projects/atlas-test-workspace')
-  await stable(page)
-  await page.getByRole('button', { name: 'New coding session' }).first().click()
-  await page.getByLabel('Session title').fill('Test-only attempted session')
+  await page.route(`**/api/v1/projects/${p.id}/sessions`, (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 503,
+          json: { data: { error: { message: 'Test-only runtime unavailable' } } },
+        })
+      : route.continue(),
+  )
+  await page.goto(`/projects/${p.id}`)
+  await page.getByRole('button', { name: 'New coding session' }).click()
+  await page.getByLabel('Session title').fill('Attempted session')
   await page.getByRole('button', { name: 'Create session', exact: true }).click()
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText(
     'Test-only runtime unavailable',
   )
-  expect(await page.evaluate(() => localStorage.getItem('atlas-session-index-v1'))).toBeNull()
+  await page.request.delete(`/api/v1/projects/${p.id}`, { data: { confirmName: name } })
 })
 
 test('documentation code copy uses the clipboard', async ({ page, context }) => {
@@ -420,7 +445,7 @@ test('critical and serious accessibility checks on every main route', async ({ p
 
 test('streamed parts update the transcript and actual event activity', async ({ page }) => {
   await fixtureSession(page)
-  await page.goto('/projects/atlas-test-workspace/sessions/test-session-id')
+  await page.goto('/projects/11111111-1111-4111-8111-111111111111/sessions/test-session-id')
   await expect(page.locator('.stream-status')).toContainText('Event stream connected')
   await page.evaluate(() => {
     for (const [type, data] of [
@@ -456,26 +481,53 @@ test('streamed parts update the transcript and actual event activity', async ({ 
       )
     }
   })
-  await expect(page.getByText('Test-only streamed response', { exact: true })).toBeVisible()
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new CustomEvent('atlas-test-runtime-event', {
+        detail: {
+          type: 'message.part.delta',
+          data: {
+            type: 'message.part.delta',
+            sessionId: 'test-session-id',
+            data: {
+              messageID: 'test-streamed-message',
+              partID: 'test-streamed-part',
+              field: 'text',
+              delta: ' plus delta',
+            },
+          },
+        },
+      }),
+    ),
+  )
+  await expect(
+    page.getByText('Test-only streamed response plus delta', { exact: true }),
+  ).toBeVisible()
   await page.getByRole('tab', { name: 'Activity', exact: true }).click()
   await expect(page.getByText('test-tool · running', { exact: true })).toBeVisible()
 })
 
-test('runtime-discovered provider search does not invent models or credentials', async ({
-  page,
-}) => {
-  await page.route('**/api/v1/health', (route) =>
+test('runtime provider/model discovery is not a credential guarantee', async ({ page }) => {
+  await page.route('**/api/v1/providers', (route) =>
     route.fulfill({
       json: {
         data: {
-          atlas: 'ok',
-          runtime: {
-            status: 'ready',
-            providers: [
-              { id: 'test-provider-a', name: 'Test Provider A' },
-              { id: 'test-provider-b', name: 'Test Provider B' },
-            ],
-          },
+          providers: [
+            {
+              id: 'test-provider-a',
+              name: 'Test Provider A',
+              connected: true,
+              authentication: 'runtime-connected',
+              models: [],
+            },
+            {
+              id: 'test-provider-b',
+              name: 'Test Provider B',
+              connected: true,
+              authentication: 'runtime-connected',
+              models: [],
+            },
+          ],
         },
       },
     }),
@@ -485,129 +537,266 @@ test('runtime-discovered provider search does not invent models or credentials',
   await expect(page.locator('.provider-grid .directory-card')).toHaveCount(2)
   await page.getByRole('searchbox', { name: 'Search discovered providers' }).fill('Provider B')
   await expect(page.locator('.provider-grid .directory-card')).toHaveCount(1)
-  await expect(page.locator('.provider-grid')).toContainText('Not verified')
-  await expect(page.locator('.provider-grid')).toContainText('Discovery not exposed')
+  await expect(page.locator('.provider-grid')).toContainText('not independently verified')
 })
 
 for (const width of [390, 1440]) {
-  test(`read-only content and on-demand diff refresh at ${width}px (API fixtures)`, async ({
-    page,
-    context,
-  }) => {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  test(`real project editor, safe save and Git workflow at ${width}px`, async ({ page }) => {
+    test.setTimeout(60000)
     await page.setViewportSize({ width, height: 900 })
-    await fixtureSession(page)
-    let source = 'export const fixtureValue = 1\n'
-    let fileFailure = false
-    let diffFailure = false
-    let diffCalls = 0
-    await page.route('**/api/v1/workspaces/atlas-test-workspace/file?*', (route) =>
-      route.fulfill({
-        status: fileFailure ? 413 : 200,
-        json: {
-          data: fileFailure
-            ? { error: { message: 'Fixture: file exceeds the 256 KiB text-preview limit' } }
-            : {
-                workspaceId: 'atlas-test-workspace',
-                path: 'src/test.ts',
-                content: source,
-                bytes: source.length,
-                encoding: 'utf-8',
-                readOnly: true,
-              },
-        },
-      }),
-    )
-    await page.route('**/api/v1/sessions/test-session-id/diff', (route) => {
-      diffCalls++
-      return route.fulfill({
-        status: diffFailure ? 503 : 200,
-        json: {
-          data: diffFailure
-            ? { error: { message: 'Fixture: runtime diff unavailable' } }
-            : {
-                sessionId: 'test-session-id',
-                diffs: [
-                  {
-                    file: 'src/test.ts',
-                    before: 'before fixture\n',
-                    after: 'after fixture\n',
-                    additions: 1,
-                    deletions: 1,
-                  },
-                ],
-                omitted: 1,
-                source: 'opencode-session',
-                authoritativeFilesystem: false,
-                fetchedAt: Date.now(),
-              },
-        },
-      })
-    })
-    await page.goto('/projects/atlas-test-workspace/sessions/test-session-id')
-    await expect(page.locator('.message')).toHaveCount(2)
-    expect(diffCalls).toBe(0)
-    await page.getByRole('tab', { name: 'Files', exact: true }).click()
-    await page.getByRole('button', { name: /test.ts/ }).click()
-    await expect(page.locator('.file-source')).toContainText('export const fixtureValue = 1')
-    await page.locator('.file-content').getByRole('button', { name: 'Copy code' }).click()
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(source)
-    expect(await page.locator('.file-content textarea').count()).toBe(0)
+    const name = `Engineering ${width} ${Date.now()}`
+    await page.goto('/projects')
+    await page.getByRole('button', { name: 'New project' }).click()
+    await page.getByLabel('Project name', { exact: true }).fill(name)
+    await page.getByLabel('Description', { exact: true }).fill('Real browser workflow')
+    await page.getByRole('button', { name: 'Create project', exact: true }).click()
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
+    const id = page.url().split('/projects/')[1]
+    await page.getByRole('link', { name: 'Open editor', exact: true }).click()
+    await page.getByRole('button', { name: 'New file / folder' }).click()
+    await page.getByLabel('Relative path', { exact: true }).fill('sample.ts')
+    await page.getByRole('button', { name: 'Confirm create' }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await page.getByRole('button', { name: /sample.ts/ }).click()
+    const editor = page.getByRole('textbox', { name: 'Code editor: sample.ts' })
+    await editor.fill('export const value = 1\n')
+    await expect(page.getByRole('tab', { name: 'sample.ts •', exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Save file', exact: true }).click()
+    await expect(page.getByRole('status').filter({ hasText: 'Saved by backend.' })).toBeVisible()
+    const disk = (
+      await (await page.request.get(`/api/v1/projects/${id}/files/content?path=sample.ts`)).json()
+    ).data
+    expect(disk.content).toBe('export const value = 1\n')
+    await editor.fill('unsaved edit')
+    page.once('dialog', (dialog) => dialog.dismiss())
+    await page.getByRole('button', { name: 'Close sample.ts', exact: true }).click()
+    await expect(page.getByRole('tab', { name: 'sample.ts •', exact: true })).toBeVisible()
+    page.once('dialog', (dialog) => dialog.accept())
+    await page.getByRole('button', { name: 'Reload file', exact: true }).click()
+    await expect(editor).toContainText('export const value = 1')
     await noOverflow(page)
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
-    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
-    await page.screenshot({ path: `test-results/phase4-review/${width}-file.png`, fullPage: true })
-    const { default: AxeBuilder } = await import('@axe-core/playwright')
+    await page.screenshot({ path: `test-results/engineering/${width}-editor.png`, fullPage: true })
+    await page.getByRole('button', { name: 'Git changes', exact: true }).click()
+    await expect(page.getByLabel('Git diff for sample.ts')).toContainText('+export const value = 1')
+    await page.getByRole('button', { name: 'Stage sample.ts', exact: true }).click()
+    await expect(
+      page.getByText('No visible changes in this comparison', { exact: true }),
+    ).toBeVisible()
+    await page.getByRole('combobox', { name: 'Git comparison' }).selectOption('staged')
+    await expect(page.getByLabel('Git diff for sample.ts')).toBeVisible()
+    await page.getByRole('button', { name: 'Unstage sample.ts', exact: true }).click()
+    await expect(
+      page.getByText('No visible changes in this comparison', { exact: true }),
+    ).toBeVisible()
+    await page.getByRole('button', { name: 'Files and editor', exact: true }).click()
+    await page.getByRole('button', { name: 'Delete file', exact: true }).click()
+    await page.getByLabel('Type the exact path to confirm', { exact: true }).fill('sample.ts')
+    await page.getByRole('button', { name: 'Confirm delete', exact: true }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
     expect(
-      (await new AxeBuilder({ page }).analyze()).violations.filter(
-        (item) => item.impact === 'critical' || item.impact === 'serious',
-      ),
-    ).toEqual([])
-    fileFailure = true
-    await page.getByRole('button', { name: 'Refresh file' }).click()
-    await expect(page.locator('.file-content').getByRole('alert')).toContainText('256 KiB')
-    await expect(page.locator('.file-source')).toHaveCount(0)
-    fileFailure = false
-    source = 'export const fixtureValue = 2\n'
-    await page.locator('.file-content').getByRole('button', { name: 'Try again' }).click()
-    await expect(page.locator('.file-source')).toContainText('export const fixtureValue = 2')
-    await page.getByRole('tab', { name: 'Changes', exact: true }).click()
-    await expect(page.getByLabel('Runtime diff for src/test.ts')).toContainText('after fixture')
-    await expect(page.locator('.changes-view')).toContainText(
-      'not an authoritative filesystem or Git comparison',
-    )
-    await expect(page.locator('.changes-view')).toContainText('1 entry omitted')
-    await noOverflow(page)
-    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
-    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
-    await page.screenshot({ path: `test-results/phase4-review/${width}-diff.png`, fullPage: true })
-    expect(
-      (await new AxeBuilder({ page }).analyze()).violations.filter(
-        (item) => item.impact === 'critical' || item.impact === 'serious',
-      ),
-    ).toEqual([])
-    if (width === 1440) {
-      await page.getByRole('button', { name: 'Use light workspace theme' }).click()
-      expect(
-        (await new AxeBuilder({ page }).analyze()).violations.filter(
-          (item) => item.impact === 'critical' || item.impact === 'serious',
-        ),
-      ).toEqual([])
-      await page.screenshot({
-        path: 'test-results/phase4-review/1440-diff-light.png',
-        fullPage: true,
-      })
-    }
-    diffFailure = true
-    await page.getByRole('button', { name: 'Refresh diff' }).click()
-    await expect(page.locator('.changes-view').getByRole('alert')).toContainText(
-      'runtime diff unavailable',
-    )
-    await expect(page.getByLabel('Runtime diff for src/test.ts')).toHaveCount(0)
-    expect(
-      (await new AxeBuilder({ page }).analyze()).violations.filter(
-        (item) => item.impact === 'critical' || item.impact === 'serious',
-      ),
-    ).toEqual([])
+      (await page.request.get(`/api/v1/projects/${id}/files/content?path=sample.ts`)).status(),
+    ).toBe(404)
+    await page.getByRole('button', { name: 'New file / folder' }).click()
+    await page.getByLabel('Relative path', { exact: true }).fill('empty-folder')
+    await page.getByRole('checkbox', { name: /Folder/ }).check()
+    await page.getByRole('button', { name: 'Confirm create' }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Rename empty folder' }).click()
+    await page.getByLabel('Relative path', { exact: true }).fill('empty-folder')
+    await page.getByLabel('Destination path').fill('renamed-folder')
+    await page.getByRole('button', { name: 'Confirm rename' }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Delete empty folder' }).click()
+    await page.getByLabel('Relative path', { exact: true }).fill('renamed-folder')
+    await page.getByLabel('Type the exact path to confirm').fill('renamed-folder')
+    await page.getByRole('button', { name: 'Confirm delete' }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+
+    await page.getByRole('link', { name: 'Project overview', exact: true }).click()
+    await page.getByRole('button', { name: 'Archive project' }).click()
+    await expect(page.getByRole('button', { name: 'Restore project' })).toBeVisible()
+    await page.getByRole('button', { name: 'Restore project' }).click()
+    await expect(page.getByRole('button', { name: 'Archive project' })).toBeVisible()
+    await page.getByRole('button', { name: 'Delete project', exact: true }).click()
+    await page.getByLabel(`Type ${name} to confirm`, { exact: true }).fill(name)
+    await page.getByRole('button', { name: 'Confirm delete project' }).click()
+    await expect(page).toHaveURL(/\/projects$/)
   })
 }
+
+test('editor rejects an external-write conflict, protects route navigation and reopens closed tabs', async ({
+  page,
+}) => {
+  const name = `Conflicts ${Date.now()}`,
+    p = (
+      await (
+        await page.request.post('/api/v1/projects', { data: { name, location: 'managed' } })
+      ).json()
+    ).data
+  try {
+    await page.request.post(`/api/v1/projects/${p.id}/files`, {
+      data: { path: 'a.ts', content: 'export const value = 1' },
+    })
+    await page.goto(`/projects/${p.id}/editor`)
+    await page.getByRole('button', { name: /a.ts/ }).click()
+    let editor = page.getByRole('textbox', { name: 'Code editor: a.ts' })
+    await editor.fill('export const value = 2')
+    await page.route(`**/api/v1/workspaces/${p.id}/status`, (route) =>
+      route.fulfill({
+        status: 503,
+        json: { data: { error: { message: 'Test-only inventory refresh failure' } } },
+      }),
+    )
+    await page.getByRole('button', { name: 'Refresh', exact: true }).click()
+    await expect(page.getByRole('alert')).toContainText('Test-only inventory refresh failure')
+    await expect(editor).toContainText('value = 2')
+    await page.unroute(`**/api/v1/workspaces/${p.id}/status`)
+    await page.getByRole('button', { name: 'Try again', exact: true }).click()
+    await expect(page.getByRole('alert')).toHaveCount(0)
+    await expect(editor).toContainText('value = 2')
+    const file = (
+      await (await page.request.get(`/api/v1/projects/${p.id}/files/content?path=a.ts`)).json()
+    ).data
+    await page.request.put(`/api/v1/projects/${p.id}/files/content`, {
+      data: { path: 'a.ts', content: 'export const external = 3', expectedVersion: file.version },
+    })
+    await page.getByRole('button', { name: 'Save file', exact: true }).click()
+    await expect(page.getByRole('alert')).toContainText('File changed on disk')
+    await expect(editor).toContainText('value = 2')
+    expect(
+      (await (await page.request.get(`/api/v1/projects/${p.id}/files/content?path=a.ts`)).json())
+        .data.content,
+    ).toBe('export const external = 3')
+    const dismissed = new Promise<void>((resolve) =>
+      page.once('dialog', async (dialog) => {
+        await dialog.dismiss()
+        resolve()
+      }),
+    )
+    await page.getByRole('link', { name: 'Project overview', exact: true }).click()
+    await dismissed
+    await expect(page).toHaveURL(new RegExp(`/projects/${p.id}/editor$`))
+    await expect(editor).toContainText('value = 2')
+    const accepted = new Promise<void>((resolve) =>
+      page.once('dialog', async (dialog) => {
+        await dialog.accept()
+        resolve()
+      }),
+    )
+    await page.getByRole('link', { name: 'Project overview', exact: true }).click()
+    await accepted
+    await expect(page).toHaveURL(new RegExp(`/projects/${p.id}$`))
+    await page.getByRole('link', { name: 'Open editor', exact: true }).click()
+    await page.getByRole('button', { name: /a.ts/ }).click()
+    editor = page.getByRole('textbox', { name: 'Code editor: a.ts' })
+    await expect(editor).toContainText('external = 3')
+    await page.getByRole('button', { name: 'Close a.ts', exact: true }).click()
+    await expect(page.getByRole('tab', { name: 'a.ts', exact: true })).toHaveCount(0)
+    await page.getByRole('button', { name: /a.ts/ }).click()
+    await expect(page.getByRole('tab', { name: 'a.ts', exact: true })).toBeVisible()
+    await editor.fill('export const keyboardSaved = true')
+    await editor.press('Control+s')
+    await expect(page.getByRole('status').filter({ hasText: 'Saved by backend.' })).toBeVisible()
+    await editor.press('Control+f')
+    await expect(page.locator('.cm-search')).toBeVisible()
+    await page.keyboard.press('Escape')
+    const axe = await new AxeBuilder({ page })
+      .include('.project-editor-layout')
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze()
+    expect(axe.violations).toEqual([])
+  } finally {
+    await page.request.delete(`/api/v1/projects/${p.id}`, { data: { confirmName: name } })
+  }
+})
+
+test('per-session model choice is submitted and only confirmed after the scoped API succeeds (explicit fixtures)', async ({
+  page,
+  context,
+}) => {
+  await fixtureSession(page)
+  const name = `Model UI ${Date.now()}`,
+    p = (
+      await (
+        await page.request.post('/api/v1/projects', { data: { name, location: 'managed' } })
+      ).json()
+    ).data
+  let selected = { providerID: 'test', modelID: 'one' },
+    created = false
+  const models = ['one', 'two'].map((modelID) => ({
+    providerID: 'test',
+    modelID,
+    name: `Test-only ${modelID}`,
+    available: true,
+    toolCall: true,
+    reasoning: false,
+  }))
+  await page.route('**/api/v1/providers?*', (route) =>
+    route.fulfill({
+      json: {
+        data: {
+          providers: [
+            {
+              id: 'test',
+              name: 'Test-only provider',
+              connected: true,
+              authentication: 'runtime-connected',
+              models,
+            },
+          ],
+        },
+      },
+    }),
+  )
+  const record = () => ({
+    id: 'test-session-id',
+    runtimeSessionId: 'fixture-native-id',
+    workspaceId: p.id,
+    title: 'Model UI session',
+    created: Date.now(),
+    updated: Date.now(),
+    status: 'ready',
+    model: selected,
+  })
+  await page.route(`**/api/v1/projects/${p.id}/sessions`, async (route) => {
+    if (route.request().method() === 'POST') {
+      selected = route.request().postDataJSON().model
+      created = true
+      await route.fulfill({ status: 201, json: { data: record() } })
+    } else await route.fulfill({ json: { data: { sessions: created ? [record()] : [] } } })
+  })
+  await page.route('**/api/v1/sessions/test-session-id/model?*', async (route) => {
+    selected = route.request().postDataJSON()
+    await route.fulfill({ json: { data: { model: selected } } })
+  })
+  try {
+    await page.goto(`/projects/${p.id}`)
+    await page.getByRole('button', { name: 'New coding session' }).click()
+    await page.getByLabel('Session title').fill('Model UI session')
+    await page.getByRole('combobox', { name: 'Coding model' }).selectOption('test/one')
+    await page.getByRole('button', { name: 'Create session', exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`/projects/${p.id}/sessions/test-session-id$`))
+    expect(selected.modelID).toBe('one')
+    await page.getByText('Session model', { exact: true }).click()
+    await expect(page.getByText('Current model: test/one', { exact: true })).toBeVisible()
+    await page.getByRole('combobox', { name: 'Coding model' }).selectOption('test/two')
+    await expect(page.getByText('Current model: test/one', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Apply model to session' }).click()
+    await expect(page.getByText('Current model: test/two', { exact: true })).toBeVisible()
+    expect(selected.modelID).toBe('two')
+  } finally {
+    await context.unrouteAll({ behavior: 'ignoreErrors' })
+    await page.request.delete(`/api/v1/projects/${p.id}`, { data: { confirmName: name } })
+  }
+})
+
+test('the dev proxy refuses forwarded/public API traffic rather than exposing local execution', async ({
+  page,
+}) => {
+  const response = await page.request.get('/api/v1/projects', {
+    headers: { 'x-forwarded-for': '203.0.113.1' },
+  })
+  expect(response.status()).toBe(403)
+  expect((await response.json()).data.error.code).toBe('local_only')
+})

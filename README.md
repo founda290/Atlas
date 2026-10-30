@@ -1,132 +1,95 @@
 # Atlas
 
-Atlas is a React/Vite browser interface for a local AI coding agent powered by OpenCode. The public website retains its warm editorial design; the application is a separate dark developer workspace with an optional light theme.
+Atlas is a React/Vite local-first coding environment backed by Node and OpenCode. The existing warm public website and dark developer workspace are preserved. Project CRUD, durable history, a CodeMirror editor and authoritative Git operations use real backend services—not demo data.
 
-**Status:** local development preview, not a hosted or authenticated service. The interface never fabricates projects, model availability, terminal output or execution results.
+**Status:** trusted local development software, not a public execution service or OS sandbox. Real model coding acceptance is **blocked in the Arena sandbox**: the selected `opencode/glm-5.3-flash-free` endpoint is `opencode.ai`, outside the available outbound allowlist. The 15-second attempt returned `model_timeout`, with no tool events/file edits. Do not confuse working discovery or passing mocks with successful generation. See [Phase 4B evidence](docs/PHASE-4B.md).
 
-## Requirements
+## Start locally
 
-- Node.js **22.12 or later** and npm (the current Vite toolchain requires this).
-- A locally installed OpenCode CLI on the backend process's PATH.
-- A provider configured through OpenCode's supported local credential flow.
+Requirements: Node **22.12+**, npm, Git, OpenCode CLI on the backend PATH, and a reachable configured provider. SDK and tested CLI: **1.19.5**; SDK version does not establish the installed CLI version.
 
 ```bash
+npm ci
 npm install -g opencode-ai@1.19.5
 opencode --version
-npm ci
-```
 
-The backend uses official `@opencode-ai/sdk` **1.19.5** through `AgentRuntime` / `OpenCodeLocalRuntime`. The browser never imports the SDK or receives provider credentials. SDK version is not a claim about your installed CLI version.
-
-Configure the default model and credentials in OpenCode (its `/connect` command where supported). Never add provider keys to frontend environment variables, browser storage, repository files or prompts.
-
-## Run locally
-
-In separate terminals, from the repository root:
-
-```bash
-# Backend: loopback only, port 8787 by default
+# Separate terminals, from the repository root:
 npm run server:start
-```
-
-```bash
-# Frontend: port 5173, same-origin /api proxy to the backend
 npm run dev
 ```
 
-Open `/dashboard` or `/projects`. The frontend binds to `0.0.0.0` for development previews and accepts `*.e2b.app` hosts. **This is not an authentication boundary. Do not share access with untrusted users or expose the API publicly.**
+Visit `http://127.0.0.1:5173`. Create a project, open its editor, create files, edit/save and review Git changes. This works independently of model generation. Configure credentials through OpenCode's supported local flow (`/connect` where supported), then select an actually discovered coding model when creating a session. Existing sessions expose an explicit **Apply model to session** action.
 
-The configured workspace defaults to `test-workspace/`. To choose a dedicated directory at backend startup:
-
-```bash
-ATLAS_TEST_WORKSPACE=/absolute/path/to/trusted-workspace npm run server:start
-```
-
-The public API identifier remains `atlas-test-workspace`. Changing the directory is not a project-creation operation. A backend restart clears Atlas session mappings.
-
-## Pages
-
-Public: `/`, `/features`, `/integrations`, `/pricing`, `/docs`, `/docs/:articleId`, `/login`, `/signup`.
-
-Application: `/dashboard`, `/projects`, `/projects/:projectId`, `/projects/:projectId/sessions/:sessionId`, `/models`, `/integrations/manage`, `/settings`.
-
-The existing system-response routes (`/400`, `/401`, `/403`, `/404`, `/408`, `/429`, `/500`, `/502`, `/503`, `/offline`) and unknown-route handling are preserved. Application routes are **not authenticated**.
+Never put provider credentials in frontend environment variables, browser storage, prompts, Git or an Atlas vault. The runtime retains OpenCode's supported credential handling. No provider credential objects/options/headers are returned by model discovery.
 
 ## What works
 
-- API-backed health and workspace inventory, project search/sorting/grid/list presentation.
-- Real session creation, instruction submission, SSE messages/tool activity/lifecycle, history, cancellation and return navigation.
-- Markdown messages, copyable code, file-tree expansion/search/selection, metadata and bounded read-only UTF-8 text previews.
-- On-demand, refreshable runtime session diffs. Restricted/oversized entries are omitted with a count. This is not an authoritative current-filesystem or Git comparison; empty data is not proof of no changes.
-- Runtime-discovered provider entries (not a credential or model-availability test).
-- Nine documentation articles with search, navigation and code copy.
-- Account-form validation and password visibility, with an explicitly unavailable auth service. No credentials are sent or stored.
-- Browser-persisted theme, density and code-wrapping preferences, save/cancel and error feedback.
+- Managed UUID projects: create/list/open, rename/description, archive/restore, exact-name-confirmed deletion. Deletion **retains source directories** and history rather than erasing code.
+- Independent canonical roots and Git repositories. No browser-supplied host paths or automatic demo project.
+- SQLite persistence for projects, session mappings/models/status, ordered messages and bounded activity metadata; optional PostgreSQL storage. Interrupted sessions and history-only/native-resumable sessions are distinguished after restart.
+- Scoped UTF-8 inventory/read/create/write/rename/delete. Atomic file installation and content-version checks prevent ordinary stale overwrites; symlinks/hardlinks, sensitive paths, binaries, malformed text and oversized content are rejected. Empty folder create/rename/confirmed delete; populated folders require individual operations/local tools.
+- Lazy CodeMirror editor: TS/JS/TSX/JSX, JSON, CSS, HTML, Markdown, Python; tabs, line numbers, highlighting, undo/find, Ctrl/Cmd+S, backend-confirmed saves, conflict errors and unsaved navigation/unload guards. Drafts are not persisted after browser termination.
+- Real Git working/index/HEAD comparisons, untracked and renamed paths, selected stage/unstage, exact-path-confirmed narrow unstaged discard. No commit/reset-all/apply-all action or fabricated agent attribution. Unsupported/omitted entries are disclosed.
+- Real provider/model discovery and selection validation, exact selected-model propagation, bounded prompt/abort/history calls and native assistant-error handling.
+- Scoped SSE and history reload on reconnect, stable event IDs, deduplication, actual text deltas/tool-state activity, safe Markdown/code/GFM tables. Full live event/tool-output replay and a terminal-output stream are **not** available.
 
-## Existing API
+## Configuration / persistence
 
-```text
-GET  /api/v1/health
-POST /api/v1/sessions
-GET  /api/v1/sessions/:id/messages
-POST /api/v1/sessions/:id/messages
-GET  /api/v1/sessions/:id/events
-POST /api/v1/sessions/:id/cancel
-GET  /api/v1/workspaces/atlas-test-workspace/status
-GET  /api/v1/workspaces/atlas-test-workspace/file?path=sample.ts
-GET  /api/v1/sessions/:id/diff
-```
+| Backend-only variable    | Default / meaning                                           |
+| ------------------------ | ----------------------------------------------------------- |
+| `ATLAS_DATA_DIR`         | `.atlas` — local metadata directory                         |
+| `ATLAS_WORKSPACE_ROOT`   | `<data dir>/projects` — managed UUID workspace parent       |
+| `DATABASE_URL`           | unset — SQLite; set explicitly for approved PostgreSQL/Neon |
+| `ATLAS_DATABASE_MIGRATE` | PostgreSQL schema changes require explicit `1`              |
+| `ATLAS_API_HOST`         | `127.0.0.1`; only loopback values accepted                  |
+| `ATLAS_API_PORT`         | `8787`; Vite proxy currently targets this port              |
+| `ATLAS_ALLOWED_ORIGINS`  | narrow localhost/127.0.0.1 frontend/API origins             |
+| `ATLAS_FILE_EXCLUDES`    | extra comma-separated excluded directory/path components    |
 
-Both Phase 4A additions are implemented backend routes, not speculative frontend URLs. `server/src/app.ts` owns the HTTP contract and accepts an `AgentRuntime` for deterministic regression tests; `server/src/index.ts` configures the real local adapter.
+Keep the same data directory and matching workspace root after restart. Back up metadata **and** source directories. A remote database does not copy local files, provide a cloud worker or make private host paths portable. One trusted backend should own a given data/workspace root. Provider/OpenCode storage and retention remain separate.
 
-Session creation no longer awaits the infinite event loop. SDK global events are unwrapped and runtime session IDs are mapped to their owning Atlas IDs. Cancellation cannot incorrectly emit completion for a later operation. Inventory skips symlinks and restricted path names. File reads enforce canonical containment, reject symlink components and known sensitive paths, accept only supported UTF-8 text types, and cap each file at 256 KiB. On Linux the opened descriptor is also checked for workspace containment. These safeguards are **not OS-level execution isolation**.
+### Existing Neon/Vercel integration
 
-## Read-only workspace boundaries
+Vercel metadata confirmed Atlas already has Neon-managed database variables and Neon Auth URL configuration. **No secrets were decrypted and no production database was connected to, migrated or written during development.** This establishes configuration, not connectivity or working account authentication.
 
-The file API uses workspace-relative paths. Absolute paths, traversal, encoded separators, sensitive path names (including `.env*`, `.git`, credential directories/configs and private-key extensions), symlinks, unsupported types, NUL-containing binary data, invalid UTF-8 and files larger than **256 KiB** fail explicitly. Missing files return 404, policy violations 403, malformed paths 400, oversized files 413 and unsupported text 415. It never truncates into a fake successful preview. Responses are `no-store`. Preview text is React-escaped and copyable; no HTML or SVG is executed.
-
-The diff API calls `AgentRuntime.diff` for the owning session. It filters restricted, absolute/traversal, unsupported, malformed, duplicate and oversized entries, reports `omitted`, and bounds returned content to 100 entries / 1 MiB (256 KiB per before+after pair). It examines at most 1,000 entries. Absolute runtime paths are conservatively omitted, even when they might be inside the workspace. Rendering also has line/character/time budgets and an explicit local-review fallback.
-
-**These are not a secret scanner, authentication system or an OS sandbox.** Secrets embedded in an otherwise permitted source/config file can still be returned. Conversations and tool output are not sanitized by this file-preview policy. Configure only a dedicated trusted workspace without secrets; do not expose the API or its frontend proxy to untrusted users. Read-only refers to the file HTTP API: the OpenCode agent still executes with the backend user's permissions.
-
-## Real runtime checks
+Use an approved isolated Neon branch/database before evaluating PostgreSQL. The Node backend reads server-only `DATABASE_URL`, never a `VITE_` credential. Existing schemas are read without DDL; an uninitialized/newer schema fails closed. Approved upgrades use versioned transactions, a dedicated connection and an advisory migration lock:
 
 ```bash
-npm run runtime:check
-# Optional: sends ONE real default-model instruction; may incur provider charges.
-npm run runtime:check -- --execute --timeout-ms 60000
+# Set DATABASE_URL securely in the server environment (do not paste it into chat/Git).
+ATLAS_DATABASE_MIGRATE=1 npm run server:start
+# After applying the approved schema, restart without migration opt-in.
 ```
 
-The default check uses the real CLI/SDK, an ephemeral loopback API and a disposable temporary workspace. It verifies inventory, actual file reads, real session creation, empty history/diff access and an SSE connection handshake without calling a model. The opt-in execution check asks the configured default model to change one disposable file, waits for completion and compares actual disk/API contents. It fails instead of substituting a fixture. The temp directory and child server are cleaned up; OpenCode may retain session metadata in its own local storage.
+Do not use production Neon as a disposable acceptance target. Remote PostgreSQL has protocol-level tests but **no live remote integration validation** in this environment. The Vercel SPA deployment cannot host the persistent local execution engine; do not publicly route `/api` to it. Neon Auth URLs do not activate Atlas account forms by themselves.
 
-The execution timeout is 60 seconds by default (configurable 1–120 seconds). Timeout triggers best-effort cancellation, **not proof of active model cancellation**. A successful smoke check alone does not verify model responses, tool execution, file changes, populated-history recovery or active cancellation. See [Phase 4A results](docs/PHASE-4A.md) for the exact acceptance status.
+## Security / limits
 
-## Persistence and unavailable capabilities
-
-Atlas session mappings are **in server memory**. The browser keeps a bounded index of session IDs/titles it actually created; it is not a server session list or durable session recovery. Clear browser site data to remove the index and display preferences. Live activity is not persisted/replayed.
-
-The backend has no project CRUD, file-write API, authoritative filesystem/Git diff endpoint, model catalogue/selection, authentication, password reset, external connector management, billing or hosted workspaces. These controls explain the limitation or link to configuration guidance; they do not simulate success. Supported text can be read in Atlas; file editing remains in local tools.
-
-A static deployment renders the website but does not provision the Node API or OpenCode engine. The existing SPA fallback is preserved. Do not treat a public frontend deployment as a working remote agent service.
+- Execution API binds to loopback and validates Host, Origin, Fetch Metadata, JSON media type and body sizes. The dev proxy rejects non-local/forwarded API traffic; public previews can display the website but cannot execute local work.
+- Managed file services exclude secrets and Git internals, bound text to **256 KiB**, inventory to **10,000 paths / depth 24**, and JSON mutations to **2 MiB**. A filename policy is not a secret-content scanner.
+- Git uses argument arrays/literal pathspecs, no pager/hooks/fsmonitor/external diff/text conversion, bounded output/deadlines, and refuses unsafe filters/includes, external worktrees/object stores and metadata links before status/index work. Review is capped at 100 entries/1 MiB combined diff; Git metadata inspection is capped at 10,000 entries. Unsupported binary/mode-only/conflicted states can require local Git tools.
+- One active coding operation per project. Manual file/Git mutations are blocked while running or cancellation is unconfirmed. A native acknowledgement **and idle state** are required before cancellation is confirmed. No automatic prompt replay occurs on engine restart.
+- Atlas does not sandbox the agent or hostile local processes. OpenCode and tools use the operator's OS permissions; external filesystem races, malicious generated code and descendant-process behavior require stronger OS isolation. Atomic individual writes do not make multi-file/Git/database operations one transaction.
+- Account signup/login/reset, billing, hosted execution, external connector management and permission-response UI remain honestly unsupported. Resolve OpenCode permission requests in its supported local environment. Do not expose the backend or dev proxy publicly.
 
 ## Validation
 
 ```bash
-npm run lint          # Existing convention: strict TypeScript checks; now includes tests
-npm run build         # Frontend type-check + production bundle
-npm run server:build  # Strict backend compile
-npm test              # Vitest component/data/API regression tests
+npm run lint
+npm test
+npm run build
+npm run server:build
 npm run format:check
-npm audit
-npm run test:e2e      # Playwright routes, viewports, interactions, accessibility
+npm audit --audit-level=high
+npm run test:e2e
 ```
 
-For the normal Playwright browser, first run `npx playwright install chromium`. A restricted Linux environment can instead use the npm-packaged Chromium fallback:
+Playwright starts an isolated local API and Vite automatically (no production `DATABASE_URL`). Install Chromium with `npx playwright install chromium`, or use `ATLAS_BUNDLED_CHROMIUM=1 npm run test:e2e` in this sandbox. Fixtures are explicitly test-only; API/file/Git/editor integration tests use disposable actual SQLite/directories/Git repositories. CI runs these checks; genuine provider execution is a separate opt-in acceptance, never a simulated green check.
 
 ```bash
-ATLAS_BUNDLED_CHROMIUM=1 npm run test:e2e
+npm run runtime:check
+npm run runtime:check -- --execute --model provider/model --timeout-ms 15000
 ```
 
-Start the local backend before the full browser suite. Playwright starts/reuses Vite. Screenshots and traces are ignored in `test-results/`. Browser session fixtures and injected `TestRuntime` exist **only in test files**; they are not acceptance evidence of real model execution. A real-model acceptance run requires an installed CLI, provider access/credentials and actual file-change review.
+The real check creates a disposable managed project and Git baseline, checks source/test/example preservation, actual tools, disk changes, function assertions, durable history and authoritative Git state. Only after genuine coding success does it attempt cancellation of an observed running shell tool. It cleans up the runtime and disposable directory. OpenCode maintains its independent native history. An incomplete/timeout check exits nonzero and prints observed fields rather than claiming completion.
 
-See [Phase 4A](docs/PHASE-4A.md) for current scope, security and real-runtime results; [Phase 3](docs/PHASE-3.md) is the historical interface-delivery ledger.
+See [Phase 4B plan](docs/PHASE-4B-PLAN.md), [delivery evidence and limitations](docs/PHASE-4B.md), and historical [Phase 3](docs/PHASE-3.md)/[Phase 4A](docs/PHASE-4A.md).

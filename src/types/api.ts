@@ -1,13 +1,19 @@
 export const WORKSPACE_ID = 'atlas-test-workspace'
 export type SessionStatus =
-  'ready' | 'running' | 'cancelling' | 'completed' | 'cancelled' | 'failed'
+  'interrupted' | 'ready' | 'running' | 'cancelling' | 'completed' | 'cancelled' | 'failed'
 export interface Provider {
   id: string
   name: string
 }
 export interface Health {
   atlas: string
-  runtime: { status: 'ready' | 'unavailable' | 'error'; version?: string; providers: Provider[] }
+  runtime: {
+    status: 'ready' | 'unavailable' | 'error'
+    state?: string
+    diagnostic?: string
+    version?: string
+    providers: Provider[]
+  }
 }
 export interface WorkspaceFile {
   path: string
@@ -17,6 +23,7 @@ export interface WorkspaceFile {
 export interface WorkspaceInventory {
   workspaceId: string
   files: WorkspaceFile[]
+  truncated?: boolean
 }
 export interface Session {
   id: string
@@ -24,6 +31,8 @@ export interface Session {
   workspaceId: string
   created: number
   status: SessionStatus
+  model?: ModelSelection
+  resumable?: boolean
 }
 export interface SessionRecord extends Session {
   title: string
@@ -58,5 +67,67 @@ export interface SessionDiffSnapshot {
   omitted: number
   source: 'opencode-session'
   authoritativeFilesystem: false
+  fetchedAt: number
+}
+
+export interface Project {
+  id: string
+  workspaceId: string
+  name: string
+  description: string
+  status: 'active' | 'archived' | 'deleted'
+  createdAt: number
+  updatedAt: number
+  lastOpenedAt: number
+}
+export interface ModelSelection {
+  providerID: string
+  modelID: string
+}
+export interface ModelInfo extends ModelSelection {
+  name: string
+  available: boolean
+  toolCall: boolean
+  reasoning: boolean
+  context?: number
+  output?: number
+}
+export interface ProviderInfo {
+  id: string
+  name: string
+  connected: boolean
+  authentication: string
+  models: ModelInfo[]
+}
+export interface FileContent extends Omit<WorkspaceFileContent, 'readOnly'> {
+  version: string
+  modifiedAt: number
+  readOnly: boolean
+}
+export interface GitFile {
+  path: string
+  status: string
+  oldPath?: string
+  version: string
+}
+export interface GitStatus {
+  repository: boolean
+  branch: string | null
+  files: GitFile[]
+  omitted: number
+  attribution: 'unattributed'
+}
+export interface GitReview extends GitStatus {
+  diffs: (GitFile & {
+    file: string
+    before: string
+    after: string
+    unified: string
+    additions: number
+    deletions: number
+  })[]
+  comparison: string
+  source: 'git'
+  authoritativeFilesystem: true
   fetchedAt: number
 }

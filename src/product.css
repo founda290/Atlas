@@ -2758,3 +2758,101 @@ select {
   font-size: 11px;
   color: var(--app-muted);
 }
+/* Functional engineering controls reuse the established developer palette. */
+.project-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.project-editor-layout[hidden] {
+  display: none;
+}
+.file-editor-pane {
+  min-width: 0;
+  border: 1px solid var(--app-border);
+  background: var(--app-raised);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.editor-tabs,
+.editor-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px;
+}
+.editor-tabs {
+  overflow: auto;
+  flex-wrap: nowrap;
+  border-bottom: 1px solid var(--app-border);
+}
+.editor-tabs > div {
+  display: flex;
+  flex-shrink: 0;
+}
+.editor-tabs button {
+  background: var(--app-bg);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
+  min-height: 34px;
+  font-size: 11px;
+  padding: 6px 10px;
+}
+.editor-tabs button[aria-selected='true'] {
+  border-bottom-color: var(--app-accent);
+}
+.editor-actions code {
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+.file-editor-pane .activity-notice,
+.file-editor-pane > .error-state,
+.file-editor-pane > .save-notice {
+  margin: 12px;
+}
+.atlas-code-editor {
+  min-width: 0;
+  max-width: 100%;
+}
+.session-model-picker {
+  margin: 10px 0;
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  font-size: 11px;
+}
+.session-model-picker > summary {
+  cursor: pointer;
+}
+.project-toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 24px;
+}
+@media (max-width: 767px) {
+  .project-editor-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .file-editor-pane .workbench-panel-header {
+    flex-wrap: wrap;
+  }
+  .atlas-code-editor .cm-scroller {
+    max-height: 480px;
+  }
+  .editor-actions {
+    gap: 8px;
+  }
+}
+
+.file-editor-pane > .workbench-panel-header {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.app-page-body li code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}

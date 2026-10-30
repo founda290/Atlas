@@ -188,9 +188,9 @@ const capabilityDetails = [
   {
     title: 'Project-based development',
     status: 'Available locally',
-    text: 'The dedicated test workspace has a real file inventory and its own project overview. Inspect paths and file sizes before entering a session.',
+    text: 'Create persistent managed projects with independent directories and Git repositories. Inspect real inventory and saved session history.',
     detail:
-      'Only one fixed workspace is supported. Project creation, rename and deletion are not exposed by the backend.',
+      'Create, rename, describe, archive and delete project registrations. Deletion retains source directories for safety.',
   },
   {
     title: 'Conversation and activity',
@@ -201,24 +201,24 @@ const capabilityDetails = [
   },
   {
     title: 'Files and code',
-    status: 'Read-only text',
-    text: 'Search workspace paths and read supported UTF-8 text files up to 256 KiB.',
+    status: 'Editable text',
+    text: 'Edit supported UTF-8 files up to 256 KiB in CodeMirror, with tabs, syntax highlighting and conflict-checked saves.',
     detail:
-      'Restricted paths and symlinks are blocked. Review runtime session diffs on demand; use your local editor to save changes and Git for an authoritative comparison.',
+      'Restricted paths and links are blocked. Review authoritative Git changes, stage/unstage selected files, or confirm a narrow unstaged revert.',
   },
   {
     title: 'Models and providers',
-    status: 'Partial',
+    status: 'Runtime discovery',
     text: 'View providers reported by the runtime and see whether runtime discovery succeeded.',
     detail:
-      'Model discovery and per-session selection are not exposed. Configure the default model and credentials in OpenCode.',
+      'Select a runtime-reported, connected tool-capable model per session. Discovery is not an authentication or generation test; credentials remain in OpenCode.',
   },
   {
     title: 'Execution and extensibility',
     status: 'Local runtime',
     text: 'An AgentRuntime abstraction keeps the browser separate from the execution engine. OpenCode runs locally behind the Atlas backend.',
     detail:
-      'Cloud isolation, direct MCP/CLI management, external connectors and durable session mappings are planned.',
+      'Session mappings and history are durable. Cloud isolation, direct MCP/CLI management and external connector management are not implemented.',
   },
 ]
 export function FeaturesPage() {
