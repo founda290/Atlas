@@ -23,17 +23,18 @@ function AtlasMark({ small = false }: { small?: boolean }) {
 function ThemeToggle() {
   const [dark, setDark] = useState(() => window.localStorage.getItem('atlas-theme') === 'dark')
   useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; window.localStorage.setItem('atlas-theme', dark ? 'dark' : 'light') }, [dark])
-  return <button className="theme-toggle" type="button" aria-label={dark ? 'Use light theme' : 'Use dark theme'} aria-pressed={dark} onClick={() => setDark(value => !value)}><span aria-hidden="true">{dark ? '☼' : '◐'}</span></button>
+  return <button className="theme-toggle" type="button" aria-label={dark ? 'Use light theme' : 'Use dark theme'} aria-pressed={dark} onClick={() => setDark(value => !value)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d={dark ? 'M20.3 15.4A8.5 8.5 0 0 1 8.6 3.7 8.5 8.5 0 1 0 20.3 15.4Z' : 'M12 3v2m0 14v2M3 12h2m14 0h2m-3.6-6.4-1.4 1.4M6 18l-1.4 1.4m0-14.8L6 6m12 12 1.4 1.4M12 7.5A4.5 4.5 0 1 1 12 16.5 4.5 4.5 0 0 1 12 7.5Z'} /></svg></button>
 }
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
+  useEffect(() => { if (!open) return; const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }; document.addEventListener('keydown', closeOnEscape); return () => document.removeEventListener('keydown', closeOnEscape) }, [open])
   return <header className="site-header">
     <PageContainer className="header-inner">
       <a className="wordmark" href="/" aria-label="Atlas home"><AtlasMark /><span>Atlas</span></a>
       <nav className="desktop-nav" aria-label="Primary navigation">{navItems.map(([href, label]) => <a href={href} key={href}>{label}</a>)}</nav>
       <div className="header-actions"><a className="sign-in" href="/login">Sign in</a><ButtonSkeleton href="/signup">Preview Atlas</ButtonSkeleton><ThemeToggle /><button className="menu-control" aria-expanded={open} aria-controls="mobile-navigation" onClick={() => setOpen(!open)}><span className="menu-icon" aria-hidden="true" /> <span className="sr-only">Toggle navigation</span></button></div>
-      {open && <nav id="mobile-navigation" className="mobile-nav" aria-label="Mobile navigation">{navItems.map(([href, label]) => <a href={href} key={href}>{label}</a>)}<a href="/integrations">Providers & integrations</a><a href="/login">Sign in</a><a className="mobile-nav-cta" href="/signup">Preview Atlas</a></nav>}
+      {open && <><button className="mobile-nav-backdrop" aria-label="Close navigation" onClick={() => setOpen(false)} /><nav id="mobile-navigation" className="mobile-nav" aria-label="Mobile navigation"><div className="mobile-nav-head"><strong>Menu</strong><button className="mobile-nav-close" type="button" aria-label="Close navigation" onClick={() => setOpen(false)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button></div>{navItems.map(([href, label]) => <a href={href} key={href} onClick={() => setOpen(false)}>{label}</a>)}<a href="/integrations" onClick={() => setOpen(false)}>Providers & integrations</a><a href="/login" onClick={() => setOpen(false)}>Sign in</a><a className="mobile-nav-cta" href="/signup" onClick={() => setOpen(false)}>Preview Atlas</a></nav></>}
     </PageContainer>
   </header>
 }
@@ -70,7 +71,8 @@ export function AppSidebar({ active }: { active: string }) {
 
 export function AppShell({ children, active }: { children: ReactNode; active: string }) {
   const [drawer, setDrawer] = useState(false)
-  return <div className="app-shell"><header className="app-header"><button className="app-menu-control" onClick={() => setDrawer(!drawer)} aria-expanded={drawer} aria-label="Toggle application navigation"><span className="menu-icon" /></button><div className="app-header-context"><span>Workspace</span><strong>Atlas project environment</strong></div><div className="app-account-mobile"><ThemeToggle /><span className="account-avatar">A</span></div></header>{drawer && <div className="drawer"><AppSidebar active={active} /></div>}<AppSidebar active={active} /><main className="app-main">{children}</main></div>
+  useEffect(() => { if (!drawer) return; const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setDrawer(false) }; document.addEventListener('keydown', closeOnEscape); return () => document.removeEventListener('keydown', closeOnEscape) }, [drawer])
+  return <div className="app-shell"><header className="app-header"><button className="app-menu-control" onClick={() => setDrawer(!drawer)} aria-expanded={drawer} aria-label="Toggle application navigation"><span className="menu-icon" /></button><div className="app-header-context"><span>Workspace</span><strong>Atlas project environment</strong></div><div className="app-account-mobile"><ThemeToggle /><span className="account-avatar">A</span></div></header>{drawer && <><button className="drawer-backdrop" aria-label="Close workspace navigation" onClick={() => setDrawer(false)} /><div className="drawer"><button className="drawer-close" type="button" aria-label="Close workspace navigation" onClick={() => setDrawer(false)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button><AppSidebar active={active} /></div></>}<AppSidebar active={active} /><main className="app-main">{children}</main></div>
 }
 
 export function Panel({ title, eyebrow, children, className = '' }: { title: string; eyebrow?: string; children: ReactNode; className?: string }) {
