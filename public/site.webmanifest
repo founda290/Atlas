@@ -1,0 +1,13 @@
+{
+  "name": "Atlas",
+  "short_name": "Atlas",
+  "description": "A browser-based AI coding workspace powered by OpenCode.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F3EE",
+  "theme_color": "#F5F3EE",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
