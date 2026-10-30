@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AtlasMark } from '../components'
 import { Button, Dialog } from '../components/ui'
@@ -54,7 +54,7 @@ function PasswordField({
   )
 }
 export function AuthPage({ signup = false }: { signup?: boolean }) {
-  const { refresh } = useAccount(),
+  const { user, loading: accountLoading, refresh } = useAccount(),
     navigate = useNavigate()
   const [notice, setNotice] = useState('')
   const [fields, setFields] = useState<AccountFields>({
@@ -70,6 +70,9 @@ export function AuthPage({ signup = false }: { signup?: boolean }) {
   const [terms, setTerms] = useState(false)
   const [params, setParams] = useSearchParams()
   const form = useRef<HTMLFormElement>(null)
+  useEffect(() => {
+    if (!accountLoading && user) navigate('/chat', { replace: true })
+  }, [accountLoading, user, navigate])
   function update<K extends keyof AccountFields>(field: K, value: AccountFields[K]) {
     setFields((current) => ({ ...current, [field]: value }))
     setErrors((current) => ({ ...current, [field]: undefined }))
@@ -94,7 +97,7 @@ export function AuthPage({ signup = false }: { signup?: boolean }) {
         : account.signIn(fields.email.trim(), fields.password))
       setFields((current) => ({ ...current, password: '', confirm: '' }))
       const user = await refresh()
-      if (user) navigate('/browser-projects')
+      if (user) navigate('/chat')
       else
         setNotice(
           signup
@@ -113,7 +116,7 @@ export function AuthPage({ signup = false }: { signup?: boolean }) {
         <AtlasMark />
         <p className="eyebrow">A considered workspace</p>
         <h1>{signup ? 'Make room for your next idea.' : 'Back to the work that matters.'}</h1>
-        <p>Your projects, coding sessions and local agent in one focused place.</p>
+        <p>A focused chat workspace, with project creation optional.</p>
         <div className="auth-status">
           <strong>Your account. Your choice of workspace.</strong>
           <p>
@@ -121,7 +124,7 @@ export function AuthPage({ signup = false }: { signup?: boolean }) {
             not upload them. Cloud projects are disabled for now.
           </p>
           <Button href="/browser-projects" secondary>
-            Continue without an account →
+            Continue to projects without an account →
           </Button>
         </div>
       </aside>
@@ -287,9 +290,9 @@ export function AuthPage({ signup = false }: { signup?: boolean }) {
           privacy policy.
         </p>
         <p>
-          Use browser storage only on a trusted device, and OpenCode only with trusted local
-          workspaces. Never put provider keys in source or prompts. Your account password is sent
-          only to Neon Auth.
+          Use browser storage only on a trusted device. Hosted AI execution is not available yet,
+          and Atlas does not currently offer a place to enter provider keys. Your account password
+          is sent only to Neon Auth.
         </p>
         <Button href="/docs/security" secondary>
           Read execution limitations

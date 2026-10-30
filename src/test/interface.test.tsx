@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { AppRoutes } from '../App'
 import { request } from '../services/api'
 import { account } from '../services/account'
+import { AppSidebar } from '../components'
+import { AccountProvider } from '../hooks/account'
 import { Tabs } from '../components/ui'
 function route(path: string) {
   return render(
@@ -39,6 +41,44 @@ describe('account entry integration boundary', () => {
     )
   })
 })
+describe('persistent workspace account controls', () => {
+  it('shows and performs sign-out from the sidebar', async () => {
+    vi.spyOn(account, 'session').mockResolvedValue({
+      id: 'user-1',
+      name: 'Test User',
+      email: 'test@example.com',
+      emailVerified: true,
+    })
+    const signOut = vi.spyOn(account, 'signOut').mockResolvedValue()
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <AccountProvider>
+          <AppSidebar />
+        </AccountProvider>
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign out' }))
+    expect(signOut).toHaveBeenCalledOnce()
+    expect(await screen.findByText('Signed out.')).toHaveAttribute('role', 'status')
+  })
+})
+describe('chat-first hosted workspace', () => {
+  it('shows no sample conversations, keeps sending disabled and offers optional projects', () => {
+    const fetch = vi.spyOn(window, 'fetch')
+    route('/chat')
+
+    expect(screen.getByRole('heading', { name: 'What are you working on?' })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Hosted chat is not ready')
+    expect(screen.getByRole('textbox', { name: 'Message' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled()
+    expect(screen.getByRole('link', { name: 'Create project' })).toHaveAttribute(
+      'href',
+      '/browser-projects',
+    )
+    expect(fetch).not.toHaveBeenCalled()
+  })
+})
 describe('shared UI and routes', () => {
   it('supports keyboard tab navigation', () => {
     const change = vi.fn()
@@ -57,13 +97,16 @@ describe('shared UI and routes', () => {
     expect(change).toHaveBeenCalledWith('b')
     expect(screen.getByRole('tab', { name: 'B' })).toHaveFocus()
   })
-  it('filters the actual integration directory', () => {
+  it('does not imply any hosted integrations are connected or available', () => {
     route('/integrations')
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Search integrations' }), {
-      target: { value: 'MCP' },
-    })
-    expect(screen.getByRole('heading', { name: 'MCP server management' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'CLI connections' })).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Connections are not available yet.' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Hosted AI execution' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'External tools and providers' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('searchbox', { name: 'Search integrations' })).not.toBeInTheDocument()
   })
   it('handles unknown project IDs rather than substituting the local workspace', () => {
     route('/projects/not-real')

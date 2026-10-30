@@ -1,6 +1,13 @@
 import { Component, useEffect, type ErrorInfo, type ReactNode } from 'react'
-import { createBrowserRouter, RouterProvider, Route, Routes, useLocation } from 'react-router-dom'
-import { AppShell, PublicLayout } from './components'
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Route,
+  Routes,
+  useLocation,
+  Navigate,
+} from 'react-router-dom'
+import { AppShell, Button, PublicLayout } from './components'
 import { PreferencesProvider } from './hooks/preferences'
 import { AccountProvider } from './hooks/account'
 import { ResetPasswordPage, AccountPanel } from './pages/AccountPage'
@@ -8,13 +15,44 @@ import { BrowserProjectsPage } from './pages/BrowserProjectsPage'
 import { CloudProjectsPage } from './pages/CloudProjectsPage'
 import { AuthPage } from './pages/AuthPage'
 import { DocsPage } from './pages/DocsPage'
-import { IntegrationsPage, ManagedIntegrationsPage } from './pages/IntegrationsPage'
+import { IntegrationsPage } from './pages/IntegrationsPage'
 import { ModelsPage } from './pages/ModelsPage'
-import { DashboardPage, ProjectPage, ProjectsPage } from './pages/ProjectPages'
+import { ProjectPage, ProjectsPage } from './pages/ProjectPages'
 import { FeaturesPage, HomePage, PricingPage, StatusPage } from './pages/PublicPages'
 import { SettingsPage } from './pages/SettingsPage'
 import { ProjectEditorPage } from './pages/ProjectEditorPage'
 import { WorkspacePage } from './pages/WorkspacePage'
+import { ChatPage } from './pages/ChatPage'
+
+function isLocalRuntimeOrigin() {
+  return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)
+}
+function HostedFeatureUnavailable({ feature }: { feature: string }) {
+  return (
+    <div className="app-page-body">
+      <h1>{feature} is not available in the hosted app yet.</h1>
+      <p>
+        This feature needs a deployed, isolated execution service. No example data is shown and no
+        operation was run.
+      </p>
+      <div className="project-mode-links">
+        <Button href="/chat">Go to Chat</Button>
+        <Button secondary href="/browser-projects">
+          Projects
+        </Button>
+      </div>
+    </div>
+  )
+}
+function LocalRuntimeOnly({ children, feature }: { children: ReactNode; feature: string }) {
+  return isLocalRuntimeOrigin() ? <>{children}</> : <HostedFeatureUnavailable feature={feature} />
+}
+function ProjectIndexRoute() {
+  return isLocalRuntimeOrigin() ? <ProjectsPage /> : <BrowserProjectsPage />
+}
+function ProjectDetailRoute() {
+  return isLocalRuntimeOrigin() ? <ProjectPage /> : <BrowserProjectsPage />
+}
 function RouteEffects() {
   const location = useLocation()
   useEffect(() => {
@@ -80,13 +118,38 @@ export function AppRoutes() {
             <Route path="browser-projects" element={<BrowserProjectsPage />} />
             <Route path="browser-projects/:browserId" element={<BrowserProjectsPage />} />
             <Route path="cloud-projects" element={<CloudProjectsPage />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="projects" element={<ProjectsPage />} />
-            <Route path="projects/:projectId" element={<ProjectPage />} />
-            <Route path="projects/:projectId/editor" element={<ProjectEditorPage />} />
-            <Route path="projects/:projectId/sessions/:sessionId" element={<WorkspacePage />} />
-            <Route path="models" element={<ModelsPage />} />
-            <Route path="integrations/manage" element={<ManagedIntegrationsPage />} />
+            <Route path="chat" element={<ChatPage />} />
+            <Route path="dashboard" element={<Navigate to="/chat" replace />} />
+            <Route path="projects" element={<ProjectIndexRoute />} />
+            <Route path="projects/:projectId" element={<ProjectDetailRoute />} />
+            <Route
+              path="projects/:projectId/editor"
+              element={
+                <LocalRuntimeOnly feature="Managed project editing">
+                  <ProjectEditorPage />
+                </LocalRuntimeOnly>
+              }
+            />
+            <Route
+              path="projects/:projectId/sessions/:sessionId"
+              element={
+                <LocalRuntimeOnly feature="Managed coding sessions">
+                  <WorkspacePage />
+                </LocalRuntimeOnly>
+              }
+            />
+            <Route
+              path="models"
+              element={
+                <LocalRuntimeOnly feature="Model discovery">
+                  <ModelsPage />
+                </LocalRuntimeOnly>
+              }
+            />
+            <Route
+              path="integrations/manage"
+              element={<HostedFeatureUnavailable feature="Managed integrations" />}
+            />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Routes>

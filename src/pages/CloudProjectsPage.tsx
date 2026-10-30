@@ -26,7 +26,7 @@ export function CloudProjectsPage() {
       <PageHeader
         title="Cloud projects"
         eyebrow="Projects / Cloud"
-        description="Prepared control plane. Cloud execution is disabled for this release."
+        description="Hosted execution is not available yet. No cloud project or worker will be created."
       />
       <div className="app-page-body">
         <Panel title="Cloud availability">
@@ -59,23 +59,23 @@ export function CloudProjectsPage() {
             approval. Neon stores structured data; it does not run coding agents.
           </p>
         </Panel>
-        <Panel title="Use Atlas now">
+        <Panel title="Other available pages">
           <div className="project-mode-links">
             <Link className="text-link" to="/browser-projects">
-              Browser-local projects →
+              Optional browser-local projects →
             </Link>
-            <Link className="text-link" to="/projects">
-              Local backend projects →
+            <Link className="text-link" to="/chat">
+              Chat workspace →
             </Link>
           </div>
           <p>
-            Browser-local editing works without a server while this browser is available. Local
-            OpenCode projects require the trusted backend on your machine. Neither is silently
-            uploaded or converted to a cloud project.
+            Browser-local editing works in this browser but does not run an agent or sync to your
+            account. Chat is the intended main surface, but sending is disabled until an isolated
+            hosted worker is deployed.
           </p>
           <p>
-            Operator documentation: <code>docs/ACCOUNTS-LOCAL-CLOUD-SETUP.md</code> and{' '}
-            <code>docs/ACCOUNTS-LOCAL-CLOUD-DELIVERY.md</code>.
+            The account acceptance checklist and delivery boundaries remain in the operator
+            documentation.
           </p>
         </Panel>
       </div>

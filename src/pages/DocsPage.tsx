@@ -62,12 +62,12 @@ export function DocsPage() {
               <span aria-hidden="true">/</span>
               <span>{article.title}</span>
             </nav>
-            <p className="eyebrow">Local development guide</p>
+            <p className="eyebrow">Atlas help center</p>
             <h1>{article.title}</h1>
             <p className="article-lede">{article.description}</p>
             <div className="article-notice">
-              Applies to the current local preview. No hosted accounts, billing or isolated
-              execution.
+              Hosted AI execution and billing are not available yet. Neon account flows are
+              implemented, but live provider acceptance is still pending.
             </div>
             {article.sections.map((section) => (
               <section id={section.id} key={section.id}>

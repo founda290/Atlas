@@ -68,7 +68,8 @@ function AwakeControl() {
   )
 }
 export function BrowserProjectsPage() {
-  const { browserId } = useParams(),
+  const params = useParams(),
+    browserId = params.browserId ?? params.projectId,
     navigate = useNavigate(),
     [projects, setProjects] = useState<BrowserProject[]>([]),
     [project, setProject] = useState<BrowserProject | null>(null),
@@ -177,12 +178,12 @@ export function BrowserProjectsPage() {
   return (
     <>
       <PageHeader
-        title={project?.name ?? 'Browser-local projects'}
+        title={project?.name ?? (browserId ? 'Browser project' : 'Projects on this browser')}
         eyebrow="Projects / On this device"
         description="Real source files stored in this browser. No server, account or cloud runner required."
         action={
-          project ? (
-            <Button href="/browser-projects">All browser projects</Button>
+          browserId ? (
+            <Button href="/browser-projects">Back to projects</Button>
           ) : (
             <Button
               onClick={() => {
@@ -197,23 +198,20 @@ export function BrowserProjectsPage() {
         }
       />
       <div className="app-page-body">
-        <Panel title="Choose where your work lives">
+        <Panel title="Optional browser-local project files">
           <div className="project-mode-links">
             <Badge>Browser-local</Badge>
-            <Link className="text-link" to="/projects">
-              Local backend / OpenCode →
-            </Link>
             <Link className="text-link" to="/cloud-projects">
-              Cloud — disabled →
+              Hosted execution — not available →
             </Link>
             <Link className="text-link" to="/account">
               Account →
             </Link>
           </div>
           <p>
-            Browser projects do not run OpenCode, shell commands, Git or background agents. They are
-            not automatically synced or encrypted by your account. Export before clearing browser
-            data; private browsing may discard everything.
+            Browser projects do not run an AI agent, command execution, Git or background jobs. They
+            are not automatically synced or encrypted by your account. Export before clearing
+            browser data; private browsing may discard everything.
           </p>
           <AwakeControl />
         </Panel>
@@ -270,6 +268,15 @@ export function BrowserProjectsPage() {
           </Panel>
         )}
         {browserId && loading && !project && <Loading />}
+        {browserId && !loading && !project && error.includes('not found') && (
+          <Panel title="Project not found">
+            <p>
+              This project is not saved in this browser profile. No replacement or sample project
+              was opened. Import a backup or return to your project list.
+            </p>
+            <Button href="/browser-projects">Back to projects</Button>
+          </Panel>
+        )}
         {project && (
           <>
             <Panel title="Project controls">
