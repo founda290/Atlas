@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 export const navItems = [
   ['/features', 'Features'],
@@ -11,13 +11,19 @@ export function PageContainer({ children, className = '' }: { children: ReactNod
   return <div className={`page-container ${className}`}>{children}</div>
 }
 
-export function ButtonSkeleton({ children, secondary = false, tertiary = false, href, className = '' }: { children: ReactNode; secondary?: boolean; tertiary?: boolean; href?: string; className?: string }) {
+export function ButtonSkeleton({ children, secondary = false, tertiary = false, href, className = '', onClick, disabled = false }: { children: ReactNode; secondary?: boolean; tertiary?: boolean; href?: string; className?: string; onClick?: () => void; disabled?: boolean }) {
   const classes = `button-skeleton ${secondary ? 'secondary' : ''} ${tertiary ? 'tertiary' : ''} ${className}`
-  return href ? <a className={classes} href={href}>{children}</a> : <button className={classes}>{children}</button>
+  return href ? <a className={classes} href={href}>{children}</a> : <button className={classes} onClick={onClick} disabled={disabled}>{children}</button>
 }
 
 function AtlasMark({ small = false }: { small?: boolean }) {
-  return <span className={`atlas-mark ${small ? 'small' : ''}`} aria-hidden="true"><span /></span>
+  return <img className={`atlas-mark ${small ? 'small' : ''}`} src="/atlas-mark.svg" alt="" aria-hidden="true" />
+}
+
+function ThemeToggle() {
+  const [dark, setDark] = useState(() => window.localStorage.getItem('atlas-theme') === 'dark')
+  useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; window.localStorage.setItem('atlas-theme', dark ? 'dark' : 'light') }, [dark])
+  return <button className="theme-toggle" type="button" aria-label={dark ? 'Use light theme' : 'Use dark theme'} aria-pressed={dark} onClick={() => setDark(value => !value)}><span aria-hidden="true">{dark ? '☼' : '◐'}</span></button>
 }
 
 export function SiteHeader() {
@@ -26,7 +32,7 @@ export function SiteHeader() {
     <PageContainer className="header-inner">
       <a className="wordmark" href="/" aria-label="Atlas home"><AtlasMark /><span>Atlas</span></a>
       <nav className="desktop-nav" aria-label="Primary navigation">{navItems.map(([href, label]) => <a href={href} key={href}>{label}</a>)}</nav>
-      <div className="header-actions"><a className="sign-in" href="/login">Sign in</a><ButtonSkeleton href="/signup">Preview Atlas</ButtonSkeleton><button className="menu-control" aria-expanded={open} aria-controls="mobile-navigation" onClick={() => setOpen(!open)}><span className="menu-icon" aria-hidden="true" /> <span className="sr-only">Toggle navigation</span></button></div>
+      <div className="header-actions"><a className="sign-in" href="/login">Sign in</a><ButtonSkeleton href="/signup">Preview Atlas</ButtonSkeleton><ThemeToggle /><button className="menu-control" aria-expanded={open} aria-controls="mobile-navigation" onClick={() => setOpen(!open)}><span className="menu-icon" aria-hidden="true" /> <span className="sr-only">Toggle navigation</span></button></div>
       {open && <nav id="mobile-navigation" className="mobile-nav" aria-label="Mobile navigation">{navItems.map(([href, label]) => <a href={href} key={href}>{label}</a>)}<a href="/integrations">Providers & integrations</a><a href="/login">Sign in</a><a className="mobile-nav-cta" href="/signup">Preview Atlas</a></nav>}
     </PageContainer>
   </header>
@@ -64,7 +70,7 @@ export function AppSidebar({ active }: { active: string }) {
 
 export function AppShell({ children, active }: { children: ReactNode; active: string }) {
   const [drawer, setDrawer] = useState(false)
-  return <div className="app-shell"><header className="app-header"><button className="app-menu-control" onClick={() => setDrawer(!drawer)} aria-expanded={drawer} aria-label="Toggle application navigation"><span className="menu-icon" /></button><div className="app-header-context"><span>Workspace</span><strong>Atlas project environment</strong></div><div className="app-account-mobile"><span className="account-avatar">A</span></div></header>{drawer && <div className="drawer"><AppSidebar active={active} /></div>}<AppSidebar active={active} /><main className="app-main">{children}</main></div>
+  return <div className="app-shell"><header className="app-header"><button className="app-menu-control" onClick={() => setDrawer(!drawer)} aria-expanded={drawer} aria-label="Toggle application navigation"><span className="menu-icon" /></button><div className="app-header-context"><span>Workspace</span><strong>Atlas project environment</strong></div><div className="app-account-mobile"><ThemeToggle /><span className="account-avatar">A</span></div></header>{drawer && <div className="drawer"><AppSidebar active={active} /></div>}<AppSidebar active={active} /><main className="app-main">{children}</main></div>
 }
 
 export function Panel({ title, eyebrow, children, className = '' }: { title: string; eyebrow?: string; children: ReactNode; className?: string }) {
