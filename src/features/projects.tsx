@@ -1,44 +1,27 @@
-import { useState } from 'react'
+import { useState, useCallback, useId } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Badge, Button, Dialog, EmptyState, Icon, Loading } from '../components/ui'
+import { useResource } from '../hooks/useResource'
+import { ErrorState } from '../components/ui'
 import { api } from '../services/api'
-import { saveSession } from '../services/session-store'
-import type { SessionRecord } from '../types/api'
-import { WORKSPACE_ID } from '../types/api'
+import type { SessionRecord, ModelSelection } from '../types/api'
 export function dateLabel(value: number) {
   return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-}
-export function ProjectLimitDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  return (
-    <Dialog open={open} onClose={onClose} title="One workspace, for now">
-      <p>
-        The current backend exposes one dedicated local workspace. Project creation, rename and
-        deletion are not implemented; no project has been created.
-      </p>
-      <p>
-        To use a different directory, configure <code>ATLAS_TEST_WORKSPACE</code> before starting
-        the backend. This requires a restart and clears the in-memory session mappings.
-      </p>
-      <div className="dialog-actions">
-        <Button href="/docs/projects">Workspace setup guide</Button>
-        <Button secondary onClick={onClose}>
-          Keep exploring
-        </Button>
-      </div>
-    </Dialog>
-  )
 }
 export function NewSessionButton({
   label = 'New coding session',
   disabled = false,
+  projectId,
 }: {
   label?: string
   disabled?: boolean
+  projectId: string
 }) {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [model, setModel] = useState<ModelSelection>()
   const navigate = useNavigate()
   async function create() {
     if (!title.trim()) {
@@ -48,10 +31,10 @@ export function NewSessionButton({
     setError('')
     setBusy(true)
     try {
-      const created = await api.createSession(title.trim())
-      saveSession({ ...created, title: title.trim(), updated: created.created })
+      const created = await api.createSession(title.trim(), projectId, model)
+      window.dispatchEvent(new Event('atlas:sessions'))
       setOpen(false)
-      navigate(`/projects/${WORKSPACE_ID}/sessions/${created.id}`)
+      navigate(`/projects/${projectId}/sessions/${created.id}`)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Session creation failed.')
     } finally {
@@ -101,6 +84,7 @@ export function NewSessionButton({
             />
             <small id="session-title-hint">A short description of the work. No secrets.</small>
           </div>
+          <ModelPicker projectId={projectId} onChange={setModel} />
           {error && (
             <p className="error-state" role="alert">
               {error}
@@ -136,7 +120,7 @@ export function SessionList({ sessions, limit }: { sessions: SessionRecord[]; li
               </span>
               <div>
                 <strong>{session.title}</strong>
-                <small>Local test workspace · {dateLabel(session.updated)}</small>
+                <small>Project session · {dateLabel(session.updated)}</small>
               </div>
               <Badge>{session.status} · last known</Badge>
               <span className="sr-only">Continue session</span>
@@ -151,5 +135,57 @@ export function SessionList({ sessions, limit }: { sessions: SessionRecord[]; li
         </EmptyState>
       )}
     </>
+  )
+}
+
+export function ModelPicker({
+  projectId,
+  onChange,
+}: {
+  projectId: string
+  onChange: (value: ModelSelection | undefined) => void
+}) {
+  const load = useCallback((signal: AbortSignal) => api.providers(projectId, signal), [projectId])
+  const resource = useResource(load),
+    id = useId()
+  const models =
+    resource.data?.providers.flatMap((p) =>
+      p.models.filter((m) => m.available).map((m) => ({ ...m, providerName: p.name })),
+    ) ?? []
+  return (
+    <div className="form-field">
+      <label htmlFor={id}>Coding model</label>
+      <select
+        id={id}
+        defaultValue=""
+        onChange={(e) => {
+          const selected = models.find((m) => `${m.providerID}/${m.modelID}` === e.target.value)
+          onChange(
+            selected ? { providerID: selected.providerID, modelID: selected.modelID } : undefined,
+          )
+        }}
+      >
+        <option value="">Select a connected model</option>
+        {models.map((m) => (
+          <option key={`${m.providerID}/${m.modelID}`} value={`${m.providerID}/${m.modelID}`}>
+            {m.providerName} / {m.name}
+          </option>
+        ))}
+      </select>
+      {resource.loading ? (
+        <Loading label="Discovering project models" />
+      ) : resource.error ? (
+        <ErrorState message={resource.error} retry={resource.reload} />
+      ) : !models.length ? (
+        <p>
+          No connected tool-capable models reported. Configure a provider in OpenCode, then refresh.
+        </p>
+      ) : (
+        <small>Runtime-reported configuration, not a credential or network test.</small>
+      )}
+      <button className="text-button" type="button" onClick={resource.reload}>
+        Refresh models
+      </button>
+    </div>
   )
 }

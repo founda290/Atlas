@@ -298,4 +298,38 @@ describe('Phase 4A on-demand session diffs', () => {
     expect((await fetch(`${base}/sessions/${session.id}/diff`)).status).toBe(503)
     expect((await fetch(`${base}/sessions/missing-session/diff`)).status).toBe(404)
   })
+  it('does not release operation ownership when activity persistence fails', async () => {
+    await app.close()
+    runtime = new TestRuntime()
+    app = createAtlasServer(runtime, new WorkspaceGuard(directory), {
+      initial: [],
+      save: async () => {},
+      messages: async () => [],
+      saveMessages: async () => {},
+      event: async () => {
+        throw new Error('Test-only event persistence failure')
+      },
+    })
+    await new Promise<void>((resolve) => app.server.listen(0, '127.0.0.1', resolve))
+    const address = app.server.address()
+    if (!address || typeof address === 'string') throw new Error()
+    base = `http://127.0.0.1:${address.port}/api/v1`
+    const session = await create(),
+      url = `${base}/sessions/${session.id}`
+    expect(
+      (await fetch(`${url}/messages`, { method: 'POST', body: JSON.stringify({ text: 'First' }) }))
+        .status,
+    ).toBe(202)
+    expect(
+      (
+        await fetch(`${url}/messages`, {
+          method: 'POST',
+          body: JSON.stringify({ text: 'Must not overlap' }),
+        })
+      ).status,
+    ).toBe(409)
+    expect((await (await fetch(`${url}/cancel`, { method: 'POST' })).json()).data.cancelled).toBe(
+      true,
+    )
+  })
 })

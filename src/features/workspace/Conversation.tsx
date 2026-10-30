@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ComponentProps } from 'react'
 import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { Badge, Button, CodeBlock } from '../../components/ui'
 import { usePreferences } from '../../hooks/preferences'
 import type { Message } from '../../types/api'
@@ -86,7 +87,7 @@ export function Conversation({
                 </span>
               </div>
               <div className="markdown">
-                <Markdown components={{ pre: MarkdownPre }}>
+                <Markdown remarkPlugins={[remarkGfm]} components={{ pre: MarkdownPre }}>
                   {message.text ||
                     (message.tools.length
                       ? 'Tool activity is recorded below.'

@@ -9,3 +9,9 @@ test-results/
 .env
 .env.*
 !.env.example
+
+# Local persistent application state and managed workspaces
+.atlas/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm

@@ -29,8 +29,8 @@ export const articles: Article[] = [
         id: 'available-today',
         heading: 'Available today',
         paragraphs: [
-          'Inspect the dedicated local workspace inventory, create a real agent session, submit instructions, read message history, follow events and cancel an active operation.',
-          'Atlas uses one fixed workspace. Project CRUD, file-content editing, on-demand filesystem diffs, model selection and direct external connectors are not exposed by the API.',
+          'Create persistent projects, inspect scoped inventory, start real sessions, submit instructions, reopen saved history and observe genuine tool/lifecycle events.',
+          'Create managed projects, edit actual files with version-checked saves, review authoritative Git changes and select runtime-reported coding models. Direct external connector management remains unavailable.',
         ],
       },
       {
@@ -71,7 +71,7 @@ export const articles: Article[] = [
         heading: 'Start the two processes',
         paragraphs: [
           'Start the backend in one terminal and the Vite frontend in another. The backend listens on loopback port 8787 by default. Vite proxies relative /api requests to it.',
-          'Open the frontend, visit Projects and open the local test workspace. Start a session only after the runtime is ready.',
+          'Open the frontend, visit Projects and create a managed workspace. Its standalone editor works without model access; coding sessions require the local runtime and a reachable provider.',
         ],
         code: '# Terminal 1\nnpm run server:start\n\n# Terminal 2\nnpm run dev',
         language: 'bash',
@@ -87,7 +87,7 @@ export const articles: Article[] = [
         id: 'layout',
         heading: 'Find your way around',
         paragraphs: [
-          'The desktop workspace shows a file explorer beside a read-only detail area and agent conversation. Activity and Changes are separate views. On smaller screens, switch among Agent, Files, Activity and Changes using the workspace tabs.',
+          'The desktop workspace provides a file explorer, CodeMirror editor, agent conversation and authoritative Git review. Activity and Changes are separate views. On smaller screens, switch among Agent, Files, Activity and Changes using the workspace tabs.',
         ],
       },
       {
@@ -95,15 +95,15 @@ export const articles: Article[] = [
         heading: 'Workspace inventory',
         paragraphs: [
           'File paths and sizes come from the API, not sample frontend data. Expand folders, search paths and select a file to inspect its metadata.',
-          'Select a supported UTF-8 text file to read its actual contents (256 KiB maximum). Sensitive paths, symlinks, binary and invalid UTF-8 files are blocked. Refresh reads the file again; there is no save operation. Use your local editor to make changes.',
+          'Read and edit supported UTF-8 text files up to 256 KiB. Sensitive paths, symlinks, hardlinks, binary and malformed UTF-8 files are blocked. Ctrl/Cmd+S saves with a content version check. Conflicts preserve the draft and require reconciliation. Folder rename/delete supports empty folders only.',
         ],
       },
       {
         id: 'activity',
         heading: 'Activity is not a terminal',
         paragraphs: [
-          'Activity records the real lifecycle and tool events received during the current connection. It is not persisted or replayed by the server. Message history is fetched separately when you return to a session.',
-          'No verified terminal stream is exposed. Changes fetches the runtime-reported session diff on demand, with manual refresh and refresh after a terminal lifecycle event. Restricted or oversized entries are omitted with a count. A runtime diff is not an authoritative filesystem comparison; review local changes in Git.',
+          'Activity shows genuine events from this connection. Bounded metadata is persisted on the project overview; complete tool-output replay is not implemented. Ordered message history is saved separately and reloaded on reconnect.',
+          'No verified terminal-output stream is exposed. Changes reads actual Git working-tree/index/HEAD diffs, with explicit refresh and selected stage/unstage. Discard requires the exact path and restores only a supported existing tracked file from the index. Changes may contain pre-existing user work; they are not automatically agent-attributed.',
         ],
       },
     ],
@@ -111,31 +111,31 @@ export const articles: Article[] = [
   {
     id: 'projects',
     title: 'Creating projects',
-    description: 'What “project” means in the current single-workspace preview.',
+    description: 'Persistent managed workspaces, bounded paths and retained source directories.',
     sections: [
       {
         id: 'local-project',
-        heading: 'The dedicated local project',
+        heading: 'Managed project boundaries',
         paragraphs: [
-          'Atlas currently exposes one real workspace, atlas-test-workspace. Its project entry is derived from the workspace inventory endpoint. A failed request is shown as an error, not replaced with sample projects.',
+          'Each project has a generated ID, independent managed directory and Git repository. Projects are created through the backend; no demo workspace is seeded and host paths are not exposed in browser responses.',
         ],
       },
       {
         id: 'configuration',
         heading: 'Configure the workspace at startup',
         paragraphs: [
-          'The default is test-workspace/ inside the repository. To change it, set ATLAS_TEST_WORKSPACE on the backend before starting it. This changes the configured directory, not the fixed API workspace identifier.',
-          'Changing the directory requires a backend restart; Atlas session mappings will be lost. Only use a dedicated directory you trust.',
+          'Local metadata defaults to .atlas/atlas.sqlite and project directories to .atlas/projects/. ATLAS_DATA_DIR and ATLAS_WORKSPACE_ROOT configure these backend-only locations. Use one trusted backend for a given data/workspace root.',
+          'Preserve the data directory and matching workspace root across restarts. Roots from a different host fail closed; a shared database does not provision or synchronize source files.',
         ],
-        code: 'ATLAS_TEST_WORKSPACE=/absolute/path/to/dedicated-workspace npm run server:start',
+        code: 'ATLAS_WORKSPACE_ROOT=/absolute/path/to/managed-projects npm run server:start',
         language: 'bash',
       },
       {
         id: 'project-actions',
         heading: 'Creation, rename and deletion',
         paragraphs: [
-          'The API has no project CRUD operations. New project opens an explanation and setup guidance, not a simulated creation form. Rename and delete are not presented as working actions.',
-          'The browser keeps an index of sessions it actually created. This is not project persistence or a global list of server sessions.',
+          'New project creates a real managed Git workspace. Edit updates the name/description; archive makes it read-only. Deleting requires its exact name and removes its registration while retaining source files and historical data.',
+          'Projects, sessions, messages and bounded activity metadata are server-persisted. Lists come from the backend rather than browser storage. Display preferences remain browser-local.',
         ],
       },
     ],
@@ -157,7 +157,7 @@ export const articles: Article[] = [
         id: 'instruct',
         heading: 'Send a clear instruction',
         paragraphs: [
-          'Use the multiline composer. Enter sends; Shift + Enter adds a line. Instructions must contain text and be under 20,000 characters. Only one operation may run in a session at a time.',
+          'Use the multiline composer. Enter sends; Shift + Enter adds a line. Instructions must contain text and be under 20,000 characters. Only one coding operation may run in a project at a time. Manual file/Git mutations are blocked while it is active.',
           'Assistant messages support Markdown and copyable code blocks. Tool and lifecycle events appear in Activity. Do not treat displayed agent text as proof that a file was changed; inspect the actual workspace.',
         ],
       },
@@ -165,8 +165,8 @@ export const articles: Article[] = [
         id: 'continue',
         heading: 'Continue or cancel',
         paragraphs: [
-          'Sessions created in this browser appear in recent sessions. They remain usable while the same backend is running. Stop requests cancellation through the API, and a failed cancellation is shown as an error.',
-          'The backend stores Atlas-to-runtime session mappings in memory. After a restart, an old Atlas URL can return Session not found. Create a new session rather than assuming durable recovery.',
+          'Saved project sessions appear in server-backed history. Stop invalidates the local operation and requests native cancellation. Cancellation needs a native acknowledgement and idle state; unconfirmed cancellation keeps the project locked.',
+          'Mappings and messages persist after restart. Stale running sessions become interrupted. A session is resumable only after native reconciliation; otherwise stored messages remain visible as historical and continuation is rejected.',
         ],
       },
     ],
@@ -181,23 +181,23 @@ export const articles: Article[] = [
         heading: 'A backend-owned engine',
         paragraphs: [
           'AgentRuntime defines status, session creation, prompt, abort, messages, diff, events and close. OpenCodeLocalRuntime implements this contract with the official @opencode-ai/sdk.',
-          'The backend starts OpenCode on loopback. The browser never connects directly to the engine. The API exposes a bounded, filtered session-diff endpoint. It reports OpenCode observations, not an independent comparison of the current filesystem.',
+          'The backend shares one managed loopback OpenCode engine across project adapters. It detects lost connections, restarts without replaying prompts, bounds requests and shuts down its owned runtime. Independent Git services, not assistant claims, supply change review.',
         ],
       },
       {
         id: 'requests',
         heading: 'The existing API',
         paragraphs: [
-          'All browser requests use relative URLs. Health reports runtime status and provider entries. Sessions expose create, messages, events, cancel and filtered diff snapshots. The fixed workspace exposes status/inventory and bounded read-only UTF-8 file content.',
+          'All browser requests use relative URLs. Projects own files, Git operations and sessions. Global session routes require a matching projectId query parameter; cross-project access fails. Models/providers are discovered through the backend.',
         ],
-        code: 'GET  /api/v1/health\nPOST /api/v1/sessions\nGET  /api/v1/sessions/:id/messages\nPOST /api/v1/sessions/:id/messages\nGET  /api/v1/sessions/:id/events\nPOST /api/v1/sessions/:id/cancel\nGET  /api/v1/workspaces/atlas-test-workspace/status\nGET  /api/v1/workspaces/atlas-test-workspace/file?path=sample.ts\nGET  /api/v1/sessions/:id/diff',
+        code: 'GET  /api/v1/health\nGET  /api/v1/projects\nPOST /api/v1/projects\nPOST /api/v1/projects/:projectId/sessions\nGET  /api/v1/sessions/:id/messages?projectId=:projectId\nPOST /api/v1/sessions/:id/messages?projectId=:projectId\nGET  /api/v1/sessions/:id/events?projectId=:projectId\nPOST /api/v1/sessions/:id/cancel?projectId=:projectId\nGET  /api/v1/projects/:projectId/files\nPUT  /api/v1/projects/:projectId/files/content\nGET  /api/v1/projects/:projectId/diff?comparison=working',
         language: 'http',
       },
       {
         id: 'limits',
         heading: 'Current limits',
         paragraphs: [
-          'Session mappings and live activity are not durable. No cloud worker, job queue, multi-user isolation, direct MCP management or arbitrary command API is implemented.',
+          'Session mappings, messages and bounded event metadata are durable. Full event replay, cloud workers, job queues, multi-user isolation, direct MCP management and arbitrary command endpoints are not implemented.',
           'A static deployment can render the website but does not provision the local Node API. Start both processes locally for real execution.',
         ],
       },
@@ -220,8 +220,8 @@ export const articles: Article[] = [
         id: 'models',
         heading: 'Default model',
         paragraphs: [
-          'Choose your default model in OpenCode. Atlas does not currently expose model discovery, per-session model selection or a provider-key form.',
-          'The Models page will show runtime-discovered providers and explicitly explain why the model list and selected model are unavailable. No model names are invented.',
+          'Select an actually reported connected tool-capable model during session creation. In an existing workspace, choose a pending model and explicitly apply it; the current model changes only after backend confirmation. Global defaults and credentials remain OpenCode-owned.',
+          'The Models page displays real provider/model metadata. Runtime-connected means reported configured, not independently authenticated or network-tested. Unsupported or failed discovery stays an error; no model names or specifications are invented.',
         ],
       },
       {
@@ -260,7 +260,7 @@ export const articles: Article[] = [
         id: 'sessions',
         heading: 'A session disappeared',
         paragraphs: [
-          'Restarting the backend clears Atlas session mappings. The browser may retain its local index, but those URLs can no longer resolve. Start a new session.',
+          'Preserve the configured metadata/workspace directories across restarts. Historical sessions retain saved messages; continuation requires actual native runtime reconciliation. A different workspace root is not an automatic source-file migration.',
           'If the event stream disconnects, Atlas reports it and reloads history on reconnect. It cannot replay missed tool activity. If an operation may still be active, do not send duplicate instructions blindly.',
         ],
       },
@@ -276,7 +276,7 @@ export const articles: Article[] = [
         heading: 'Local code execution',
         paragraphs: [
           'OpenCode can execute commands and modify files with local process permissions. The configured workspace is a context boundary, not an operating-system sandbox.',
-          'Review instructions carefully, use a disposable or dedicated workspace, and keep secrets outside it. Atlas does not currently implement an approval system, apply/revert UI or execution isolation.',
+          'Review instructions carefully, use a disposable or dedicated workspace, and keep secrets outside it. Atlas provides explicit Git staging/unstaging and narrow confirmed unstaged discard, not an execution approval gate or operating-system isolation.',
         ],
       },
       {
@@ -291,7 +291,7 @@ export const articles: Article[] = [
         id: 'data',
         heading: 'What is stored',
         paragraphs: [
-          'Atlas keeps session mappings in server memory. This browser may store a list of actually created session IDs and titles, plus display preferences. Clear site data to remove these browser records.',
+          'Atlas stores project metadata, session mappings, ordered messages and bounded event metadata in SQLite by default, or an explicitly configured PostgreSQL database. Browser storage is not the authority for session history and stores only display preferences in the current workflow.',
           'Prompts and provider credentials are not stored in Atlas browser preferences. OpenCode and the selected provider have their own storage and retention behaviour. No legal policies or privacy guarantees are implied by this preview.',
         ],
       },

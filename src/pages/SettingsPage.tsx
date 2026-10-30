@@ -4,7 +4,6 @@ import { Badge, Button, CodeBlock, ErrorState, Loading, PageHeader, Panel } from
 import { usePreferences, type Preferences } from '../hooks/preferences'
 import { useResource } from '../hooks/useResource'
 import { api } from '../services/api'
-import { WORKSPACE_ID } from '../types/api'
 import packageInfo from '../../package.json'
 const loadHealth = (signal: AbortSignal) => api.health(signal)
 export function SettingsPage() {
@@ -78,13 +77,13 @@ export function SettingsPage() {
                   <div>
                     <dt>Default workspace</dt>
                     <dd>
-                      <code>{WORKSPACE_ID}</code>
+                      <code>Managed per-project workspaces</code>
                     </dd>
                   </div>
                   <div>
                     <dt>Default directory</dt>
                     <dd>
-                      <code>test-workspace/</code> unless configured at startup
+                      <code>.atlas/projects/</code> unless configured at startup
                     </dd>
                   </div>
                   <div>
@@ -94,10 +93,11 @@ export function SettingsPage() {
                 </dl>
                 <p>
                   Change the workspace directory before launching the backend. This requires a
-                  restart and clears in-memory session mappings.
+                  restart. Preserve the data directory and matching workspace root to retain
+                  projects and history.
                 </p>
                 <CodeBlock
-                  code="ATLAS_TEST_WORKSPACE=/absolute/path/to/workspace npm run server:start"
+                  code="ATLAS_WORKSPACE_ROOT=/absolute/path/to/managed-projects npm run server:start"
                   language="bash"
                 />
                 <Link className="text-link" to="/docs/projects">
@@ -111,8 +111,9 @@ export function SettingsPage() {
                   <div>
                     <h3>Default model & behaviour</h3>
                     <p>
-                      Configured in OpenCode. Atlas cannot read or save the default model,
-                      permission policy or agent behaviour through the current API.
+                      Global defaults are configured in OpenCode. Atlas can select a reported coding
+                      model per session, but does not edit the global default, permission policy or
+                      agent behaviour through the current API.
                     </p>
                   </div>
                   <Badge>Not exposed</Badge>

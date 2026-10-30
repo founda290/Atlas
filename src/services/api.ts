@@ -1,8 +1,17 @@
 import type {
+  Project,
+  ModelSelection,
+  ProviderInfo,
+  FileContent,
+  GitStatus,
+  GitReview,
+} from '../types/api'
+import type {
   Health,
   Session,
   WorkspaceInventory,
   SessionStatus,
+  SessionRecord,
   WorkspaceFileContent,
   SessionDiffSnapshot,
 } from '../types/api'
@@ -53,9 +62,84 @@ const post = (body?: unknown): RequestInit => ({
   ...(body === undefined ? {} : { body: JSON.stringify(body) }),
 })
 export const api = {
+  projects: (signal?: AbortSignal) => request<{ projects: Project[] }>('/projects', { signal }),
+  activity: (id: string, signal?: AbortSignal) =>
+    request<{
+      events: { id: string; type: string; created: number; sessionId?: string; path?: string }[]
+    }>(`/projects/${encodeURIComponent(id)}/activity`, { signal }),
+  project: (id: string, signal?: AbortSignal) =>
+    request<Project>(`/projects/${encodeURIComponent(id)}`, { signal }),
+  createProject: (name: string, description: string) =>
+    request<Project>('/projects', post({ name, description, location: 'managed' })),
+  updateProject: (
+    id: string,
+    input: Partial<Pick<Project, 'name' | 'description' | 'status'>> & { open?: boolean },
+  ) =>
+    request<Project>(`/projects/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+  deleteProject: (id: string, confirmName: string) =>
+    request<{ deleted: boolean; directoryRetained: boolean }>(
+      `/projects/${encodeURIComponent(id)}`,
+      { method: 'DELETE', body: JSON.stringify({ confirmName }) },
+    ),
+  sessions: (projectId: string, signal?: AbortSignal) =>
+    request<{ sessions: SessionRecord[] }>(`/projects/${encodeURIComponent(projectId)}/sessions`, {
+      signal,
+    }),
+  providers: (projectId?: string, signal?: AbortSignal) =>
+    request<{ providers: ProviderInfo[] }>(
+      `/providers${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''}`,
+      { signal },
+    ),
+  readFile: (id: string, path: string, signal?: AbortSignal) =>
+    request<FileContent>(
+      `/projects/${encodeURIComponent(id)}/files/content?path=${encodeURIComponent(path)}`,
+      { signal },
+    ),
+  writeFile: (id: string, path: string, content: string, expectedVersion: string) =>
+    request<FileContent>(`/projects/${encodeURIComponent(id)}/files/content`, {
+      method: 'PUT',
+      body: JSON.stringify({ path, content, expectedVersion }),
+    }),
+  createFile: (id: string, path: string, kind: 'file' | 'directory', content = '') =>
+    request<unknown>(`/projects/${encodeURIComponent(id)}/files`, post({ path, kind, content })),
+  renameFile: (id: string, path: string, destination: string, expectedVersion: string) =>
+    request<unknown>(`/projects/${encodeURIComponent(id)}/files`, {
+      method: 'PATCH',
+      body: JSON.stringify({ path, destination, expectedVersion }),
+    }),
+  deleteFile: (id: string, path: string, expectedVersion: string, confirmPath: string) =>
+    request<unknown>(`/projects/${encodeURIComponent(id)}/files`, {
+      method: 'DELETE',
+      body: JSON.stringify({ path, expectedVersion, confirmPath }),
+    }),
+  gitStatus: (id: string, signal?: AbortSignal) =>
+    request<GitStatus>(`/projects/${encodeURIComponent(id)}/git/status`, { signal }),
+  gitDiff: (id: string, comparison: string, signal?: AbortSignal) =>
+    request<GitReview>(`/projects/${encodeURIComponent(id)}/diff?comparison=${comparison}`, {
+      signal,
+    }),
+  gitAction: (
+    id: string,
+    action: 'stage' | 'unstage' | 'revert',
+    path: string,
+    expectedVersion: string,
+    confirmPath?: string,
+  ) =>
+    request<GitStatus>(
+      `/projects/${encodeURIComponent(id)}/git/${action}`,
+      post({ path, expectedVersion, confirmPath }),
+    ),
+  setModel: (id: string, projectId: string, model: ModelSelection) =>
+    request<{ model: ModelSelection }>(
+      `/sessions/${encodeURIComponent(id)}/model?projectId=${encodeURIComponent(projectId)}`,
+      post(model),
+    ),
   health: (signal?: AbortSignal) => request<Health>('/health', { signal }),
-  workspace: (signal?: AbortSignal) =>
-    request<WorkspaceInventory>(`/workspaces/${WORKSPACE_ID}/status`, { signal }),
+  workspace: (signal?: AbortSignal, projectId = WORKSPACE_ID) =>
+    request<WorkspaceInventory>(`/workspaces/${encodeURIComponent(projectId)}/status`, { signal }),
   file: (path: string, signal?: AbortSignal) =>
     request<WorkspaceFileContent>(
       `/workspaces/${WORKSPACE_ID}/file?path=${encodeURIComponent(path)}`,
@@ -63,21 +147,34 @@ export const api = {
     ),
   sessionDiff: (id: string, signal?: AbortSignal) =>
     request<SessionDiffSnapshot>(`/sessions/${encodeURIComponent(id)}/diff`, { signal }),
-  createSession: (title: string) =>
-    request<Session>('/sessions', post({ workspaceId: WORKSPACE_ID, title })),
-  history: (id: string, signal?: AbortSignal) =>
-    request<{ sessionId: string; messages: unknown[] }>(
-      `/sessions/${encodeURIComponent(id)}/messages`,
+  createSession: (title: string, projectId = WORKSPACE_ID, model?: ModelSelection) =>
+    request<Session>(
+      projectId === WORKSPACE_ID
+        ? '/sessions'
+        : `/projects/${encodeURIComponent(projectId)}/sessions`,
+      post({ workspaceId: projectId, title, model }),
+    ),
+  history: (id: string, signal?: AbortSignal, projectId?: string) =>
+    request<{
+      sessionId: string
+      messages: unknown[]
+      error?: string
+      errorCode?: string
+      historical?: boolean
+      resumable?: boolean
+      status?: SessionStatus
+    }>(
+      `/sessions/${encodeURIComponent(id)}/messages${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''}`,
       { signal },
     ),
-  prompt: (id: string, text: string) =>
+  prompt: (id: string, text: string, projectId?: string) =>
     request<{ status: SessionStatus }>(
-      `/sessions/${encodeURIComponent(id)}/messages`,
+      `/sessions/${encodeURIComponent(id)}/messages${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''}`,
       post({ text }),
     ),
-  cancel: (id: string) =>
+  cancel: (id: string, projectId?: string) =>
     request<{ status: SessionStatus; cancelled: boolean }>(
-      `/sessions/${encodeURIComponent(id)}/cancel`,
+      `/sessions/${encodeURIComponent(id)}/cancel${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''}`,
       post(),
     ),
 }
@@ -85,11 +182,11 @@ export const api = {
 // Integration boundaries: no speculative endpoints and no successful simulations.
 export const capabilities = {
   authentication: false,
-  projectCrud: false,
+  projectCrud: true,
   fileContent: true,
-  fileWrite: false,
-  modelDiscovery: false,
-  modelSelection: false,
+  fileWrite: true,
+  modelDiscovery: true,
+  modelSelection: true,
   diff: true,
   terminalStream: false,
 } as const

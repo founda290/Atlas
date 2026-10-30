@@ -1,424 +1,433 @@
-import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useCallback, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   Badge,
   Button,
+  Dialog,
   EmptyState,
   ErrorState,
-  Icon,
   Loading,
   PageHeader,
   Panel,
   SearchInput,
-  Tabs,
 } from '../components/ui'
-import { NewSessionButton, ProjectLimitDialog, SessionList } from '../features/projects'
-import { useResource } from '../hooks/useResource'
-import { useSessions } from '../hooks/useSessions'
+import { NewSessionButton, SessionList } from '../features/projects'
 import { api } from '../services/api'
-import { WORKSPACE_ID } from '../types/api'
-const loadWorkspace = (signal: AbortSignal) => api.workspace(signal)
+import { useResource } from '../hooks/useResource'
+import type { Project } from '../types/api'
+const loadProjects = (signal: AbortSignal) => api.projects(signal)
 const loadHealth = (signal: AbortSignal) => api.health(signal)
+export function MissingProject() {
+  return (
+    <div className="app-page-body">
+      <h1>Project not found.</h1>
+      <p>This project is unavailable. No substitute workspace has been opened.</p>
+      <Button href="/projects">Back to projects</Button>
+    </div>
+  )
+}
+function CreateProject({ done }: { done: (project: Project) => void }) {
+  const [open, setOpen] = useState(false),
+    [name, setName] = useState(''),
+    [description, setDescription] = useState(''),
+    [error, setError] = useState(''),
+    [busy, setBusy] = useState(false)
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>New project</Button>
+      <Dialog title="Create project" open={open} dismissible={!busy} onClose={() => setOpen(false)}>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            setBusy(true)
+            setError('')
+            void api
+              .createProject(name, description)
+              .then((p) => {
+                setOpen(false)
+                done(p)
+              })
+              .catch((e) => setError(e.message))
+              .finally(() => setBusy(false))
+          }}
+        >
+          <p>
+            Create a real Git-enabled workspace in the backend-managed location. Host paths stay
+            private.
+          </p>
+          <label className="form-field">
+            Project name
+            <input required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <label className="form-field">
+            Description
+            <textarea
+              maxLength={2000}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </label>
+          <label className="form-field">
+            Workspace location
+            <select value="managed" onChange={() => undefined}>
+              <option value="managed">Managed local workspaces</option>
+            </select>
+          </label>
+          {error && (
+            <p role="alert" className="error-state">
+              {error}
+            </p>
+          )}
+          <div className="dialog-actions">
+            <Button type="submit" disabled={busy}>
+              {busy ? 'Creating…' : 'Create project'}
+            </Button>
+            <Button secondary disabled={busy} onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+    </>
+  )
+}
 export function DashboardPage() {
-  const workspace = useResource(loadWorkspace)
-  const health = useResource(loadHealth)
-  const sessions = useSessions().filter((item) => item.workspaceId === WORKSPACE_ID)
-  const [newProject, setNewProject] = useState(false)
+  const projects = useResource(loadProjects),
+    health = useResource(loadHealth)
   return (
     <>
       <PageHeader
-        eyebrow="Workspace / Overview"
-        title="Good work starts with context."
-        description="Welcome to your local development workspace. Pick up a session or prepare your environment for the next change."
-        action={
-          <Button onClick={() => setNewProject(true)}>
-            <Icon name="plus" />
-            New project
-          </Button>
-        }
+        eyebrow="Workspace / Dashboard"
+        title="Your work, in focus."
+        description="Persistent projects and your local coding runtime."
+        action={<Button href="/projects">Open projects</Button>}
       />
       <div className="app-page-body">
-        <div className="dashboard-grid">
-          <Panel
-            title="Your project"
-            eyebrow="Local workspace"
-            action={
-              <Link className="text-link" to="/projects">
-                View all →
-              </Link>
-            }
-          >
-            {workspace.loading ? (
-              <Loading />
-            ) : workspace.error ? (
-              <ErrorState message={workspace.error} retry={workspace.reload} />
-            ) : (
-              <div className="dashboard-project">
-                <span className="project-icon">
-                  <Icon name="folder" />
-                </span>
-                <div>
-                  <h3>Local test workspace</h3>
-                  <p>{WORKSPACE_ID}</p>
-                  <span className="muted">
-                    {workspace.data?.files.length} files in current inventory · modification time
-                    not exposed
-                  </span>
-                </div>
-                <Badge tone="success">Inventory available</Badge>
-                <Button secondary href={`/projects/${WORKSPACE_ID}`}>
-                  Open project →
-                </Button>
-              </div>
-            )}
+        <div className="model-summary">
+          <Panel title="Projects">
+            <p>
+              {projects.data?.projects.filter((p) => p.status === 'active').length ?? '—'} active
+              workspaces
+            </p>
           </Panel>
-          <Panel
-            title="Runtime status"
-            eyebrow="Environment"
-            action={
-              <button type="button" className="text-button" onClick={health.reload}>
-                Refresh
-              </button>
-            }
-          >
+          <Panel title="Runtime">
             {health.loading ? (
-              <Loading label="Checking the actual runtime" />
+              <Loading />
             ) : health.error ? (
               <ErrorState message={health.error} retry={health.reload} />
             ) : (
               <>
-                <dl className="detail-list">
-                  <div>
-                    <dt>Atlas backend</dt>
-                    <dd>
-                      <Badge tone="success">Reachable</Badge>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>OpenCode</dt>
-                    <dd>
-                      <Badge tone={health.data?.runtime.status === 'ready' ? 'success' : 'warning'}>
-                        {health.data?.runtime.status}
-                      </Badge>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Providers reported</dt>
-                    <dd>{health.data?.runtime.providers.length ?? 0}</dd>
-                  </div>
-                  <div>
-                    <dt>Credentials</dt>
-                    <dd>Not verified by Atlas</dd>
-                  </div>
-                </dl>
-                <Link className="text-link" to="/models">
-                  Provider details →
-                </Link>
+                <Badge>{health.data?.runtime.state ?? health.data?.runtime.status}</Badge>
+                <p>Execution is local to the backend, not hosted by this website.</p>
               </>
             )}
           </Panel>
         </div>
-        <Panel
-          title="Recent coding sessions"
-          eyebrow="Continue the thread"
-          action={<NewSessionButton disabled={!workspace.data} />}
-        >
-          <SessionList sessions={sessions} limit={5} />
-        </Panel>
-        <Panel title="Get your environment ready" eyebrow="Getting started">
-          <ol className="getting-started">
-            <li>
-              <span>01</span>
-              <div>
-                <Link to="/projects">Open the local project</Link>
-                <p>One dedicated workspace is available. Project provisioning is not enabled.</p>
-              </div>
-            </li>
-            <li>
-              <span>02</span>
-              <div>
-                <Link to="/docs/runtime">Configure the local runtime</Link>
-                <p>Install OpenCode and start the Atlas backend.</p>
-              </div>
-            </li>
-            <li>
-              <span>03</span>
-              <div>
-                <Link to="/docs/providers">Choose a model in OpenCode</Link>
-                <p>Configure credentials locally. Atlas does not store your keys.</p>
-              </div>
-            </li>
-            <li>
-              <span>04</span>
-              <div>
-                <Link to={`/projects/${WORKSPACE_ID}`}>Start your first coding session</Link>
-                <p>Send a focused instruction, then review the real result locally.</p>
-              </div>
-            </li>
-          </ol>
+        <Panel title="Recently opened">
+          {projects.loading ? (
+            <Loading />
+          ) : projects.error ? (
+            <ErrorState message={projects.error} retry={projects.reload} />
+          ) : projects.data?.projects.length ? (
+            <div className="session-list">
+              {projects.data.projects.slice(0, 8).map((p) => (
+                <Link className="session-row" key={p.id} to={`/projects/${p.id}`}>
+                  <strong>{p.name}</strong>
+                  <Badge>{p.status}</Badge>
+                  <time>{new Date(p.lastOpenedAt).toLocaleString()}</time>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <EmptyState title="No projects yet">
+              Create your first managed workspace. No demo project is seeded.
+            </EmptyState>
+          )}
         </Panel>
       </div>
-      <ProjectLimitDialog open={newProject} onClose={() => setNewProject(false)} />
     </>
   )
 }
 export function ProjectsPage() {
-  const workspace = useResource(loadWorkspace)
-  const sessions = useSessions().filter((item) => item.workspaceId === WORKSPACE_ID)
-  const [search, setSearch] = useState('')
-  const [sort, setSort] = useState('name')
-  const [view, setView] = useState<'grid' | 'list'>('grid')
-  const [newProject, setNewProject] = useState(false)
-  const projects = workspace.data
-    ? [
-        {
-          name: 'Local test workspace',
-          id: workspace.data.workspaceId,
-          files: workspace.data.files.length,
-        },
-      ]
-    : []
-  const filtered = projects
-    .filter((project) =>
-      `${project.name} ${project.id}`.toLowerCase().includes(search.toLowerCase()),
+  const projects = useResource(loadProjects),
+    navigate = useNavigate(),
+    [search, setSearch] = useState(''),
+    [sort, setSort] = useState('recent'),
+    [view, setView] = useState<'grid' | 'list'>('grid')
+  const rows = (projects.data?.projects ?? [])
+    .filter((p) => `${p.name} ${p.description}`.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) =>
+      sort === 'name' ? a.name.localeCompare(b.name) : b.lastOpenedAt - a.lastOpenedAt,
     )
-    .sort((a, b) => (sort === 'files' ? b.files - a.files : a.name.localeCompare(b.name)))
   return (
     <>
       <PageHeader
         eyebrow="Workspace / Projects"
-        title="A home for the work."
-        description="The current backend exposes one fixed local workspace. Your project inventory comes from the API, not demo data."
-        action={
-          <Button onClick={() => setNewProject(true)}>
-            <Icon name="plus" />
-            New project
-          </Button>
-        }
+        title="Make something worthwhile."
+        description="Real, durable projects. Each has its own managed directory and Git repository."
+        action={<CreateProject done={(p) => navigate(`/projects/${p.id}`)} />}
       />
       <div className="app-page-body">
-        <div className="list-toolbar">
-          <SearchInput
-            label="Search projects"
-            value={search}
-            onChange={setSearch}
-            placeholder="Search by project name…"
-          />
-          <label className="select-label">
-            <span className="sr-only">Sort projects</span>
-            <select value={sort} onChange={(event) => setSort(event.target.value)}>
-              <option value="name">Name: A–Z</option>
-              <option value="files">File count: high to low</option>
+        <div className="project-toolbar">
+          <SearchInput label="Search projects" value={search} onChange={setSearch} />
+          <label>
+            Sort projects
+            <select
+              aria-label="Sort projects"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+            >
+              <option value="recent">Recently opened</option>
+              <option value="name">Name</option>
             </select>
           </label>
-          <Tabs
-            label="Project presentation"
-            value={view}
-            onChange={setView}
-            items={[
-              { id: 'grid', label: 'Grid' },
-              { id: 'list', label: 'List' },
-            ]}
-          />
+          <Button secondary onClick={() => setView(view === 'grid' ? 'list' : 'grid')}>
+            {view === 'grid' ? 'List view' : 'Grid view'}
+          </Button>
+          <Button secondary onClick={projects.reload}>
+            Refresh projects
+          </Button>
         </div>
-        {workspace.loading ? (
-          <Loading label="Loading the local project" />
-        ) : workspace.error ? (
-          <ErrorState message={workspace.error} retry={workspace.reload} />
+        {projects.loading ? (
+          <Loading />
+        ) : projects.error ? (
+          <ErrorState message={projects.error} retry={projects.reload} />
+        ) : rows.length ? (
+          <div className={view === 'grid' ? 'directory-grid' : 'session-list'}>
+            {rows.map((p) => (
+              <article className={view === 'grid' ? 'directory-card' : 'session-row'} key={p.id}>
+                <Badge>{p.status}</Badge>
+                <h2>
+                  <Link to={`/projects/${p.id}`}>{p.name}</Link>
+                </h2>
+                <p>{p.description || 'No description'}</p>
+                <small>Opened {new Date(p.lastOpenedAt).toLocaleString()}</small>
+                <Button secondary href={`/projects/${p.id}`}>
+                  Open project
+                </Button>
+              </article>
+            ))}
+          </div>
         ) : (
-          <>
-            <p className="result-count" role="status">
-              {filtered.length} project{filtered.length === 1 ? '' : 's'} · single-workspace preview
-            </p>
-            <div className={`projects-view projects-${view}`}>
-              {filtered.map((project) => (
-                <article className="project-card" key={project.id}>
-                  <div className="project-card-top">
-                    <span className="project-icon">
-                      <Icon name="folder" />
-                    </span>
-                    <Badge tone="success">Inventory available</Badge>
-                  </div>
-                  <h2>{project.name}</h2>
-                  <p>A dedicated local directory for real OpenCode sessions.</p>
-                  <code>{project.id}</code>
-                  <dl className="project-metadata">
-                    <div>
-                      <dt>Files</dt>
-                      <dd>{project.files}</dd>
-                    </div>
-                    <div>
-                      <dt>Sessions in this browser</dt>
-                      <dd>{sessions.length}</dd>
-                    </div>
-                    <div>
-                      <dt>Last modified</dt>
-                      <dd>Not exposed</dd>
-                    </div>
-                  </dl>
-                  <Button href={`/projects/${project.id}`} secondary>
-                    Open project <Icon name="arrow" />
-                  </Button>
-                </article>
-              ))}
-            </div>
-            {!filtered.length && (
-              <EmptyState
-                title="No matching projects"
-                action={
-                  <Button secondary onClick={() => setSearch('')}>
-                    Clear search
-                  </Button>
-                }
-              >
-                Try another project name. New workspace provisioning is not implemented.
-              </EmptyState>
-            )}
-            <p className="inline-note">
-              Project rename and delete are unavailable. Session counts include only actual sessions
-              created in this browser, not all runtime sessions.
-            </p>
-          </>
+          <EmptyState title={search ? 'No matching projects' : 'No projects yet'}>
+            Create a project to begin. No workspace data is fabricated.
+          </EmptyState>
         )}
       </div>
-      <ProjectLimitDialog open={newProject} onClose={() => setNewProject(false)} />
     </>
   )
 }
 export function ProjectPage() {
   const { projectId } = useParams()
-  return projectId === WORKSPACE_ID ? <LocalProjectPage /> : <MissingProject />
+  return projectId && /^[a-f0-9-]{36}$/.test(projectId) ? (
+    <ExistingProjectPage key={projectId} />
+  ) : (
+    <MissingProject />
+  )
 }
-export function MissingProject() {
-  return (
-    <>
-      <PageHeader
-        eyebrow="Workspace / Projects"
-        title="Project not found."
-        description="This identifier is not the configured local workspace. No fallback project has been substituted."
-      />
+function ExistingProjectPage() {
+  const { projectId = '' } = useParams(),
+    navigate = useNavigate()
+  const load = useCallback(
+    async (signal: AbortSignal) => {
+      const [project, inventory, sessions, git, activity] = await Promise.all([
+        api.project(projectId, signal),
+        api.workspace(signal, projectId),
+        api.sessions(projectId, signal),
+        api.gitStatus(projectId, signal),
+        api.activity(projectId, signal),
+      ])
+      return { project, inventory, sessions, git, activity }
+    },
+    [projectId],
+  )
+  const resource = useResource(load),
+    [editing, setEditing] = useState(false),
+    [name, setName] = useState(''),
+    [description, setDescription] = useState(''),
+    [error, setError] = useState(''),
+    [busy, setBusy] = useState(false),
+    [deleting, setDeleting] = useState(false),
+    [confirmation, setConfirmation] = useState('')
+  const p = resource.data?.project
+  async function update(input: Parameters<typeof api.updateProject>[1]) {
+    setBusy(true)
+    setError('')
+    try {
+      await api.updateProject(projectId, input)
+      setEditing(false)
+      resource.reload()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Update failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+  if (resource.loading)
+    return (
       <div className="app-page-body">
-        <Button href="/projects" secondary>
+        <h1>Opening project</h1>
+        <Loading />
+      </div>
+    )
+  if (resource.error)
+    return (
+      <div className="app-page-body">
+        <h1>Project unavailable</h1>
+        <ErrorState message={resource.error} retry={resource.reload} />
+        <Button secondary href="/projects">
           Back to projects
         </Button>
       </div>
-    </>
-  )
-}
-function LocalProjectPage() {
-  const workspace = useResource(loadWorkspace)
-  const sessions = useSessions().filter((item) => item.workspaceId === WORKSPACE_ID)
-  const [search, setSearch] = useState('')
-  const [configure, setConfigure] = useState(false)
+    )
+  if (!p) return <MissingProject />
   return (
     <>
       <PageHeader
-        eyebrow="Projects / Local workspace"
-        title="Local test workspace"
-        description="A dedicated directory for building context and working with OpenCode. Session mappings are valid only while the backend stays running."
-        action={<NewSessionButton disabled={!workspace.data} />}
+        eyebrow="Workspace / Project"
+        title={p.name}
+        description={p.description || 'Managed local project'}
+        action={<NewSessionButton projectId={projectId} disabled={p.status !== 'active'} />}
       />
       <div className="app-page-body">
-        <nav aria-label="Breadcrumb" className="breadcrumb">
-          <Link to="/projects">Projects</Link>
-          <span aria-hidden="true">/</span>
-          <span>Local test workspace</span>
-        </nav>
-        {workspace.loading ? (
-          <Loading />
-        ) : workspace.error ? (
-          <ErrorState message={workspace.error} retry={workspace.reload} />
-        ) : (
-          <>
-            <div className="project-overview-grid">
-              <Panel title="Workspace information" eyebrow="Project details">
-                <dl className="detail-list">
-                  <div>
-                    <dt>Workspace</dt>
-                    <dd>
-                      <code>{workspace.data?.workspaceId}</code>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Inventory</dt>
-                    <dd>{workspace.data?.files.length} files</dd>
-                  </div>
-                  <div>
-                    <dt>Location</dt>
-                    <dd>Server-configured directory</dd>
-                  </div>
-                  <div>
-                    <dt>Latest local activity</dt>
-                    <dd>
-                      {sessions[0]
-                        ? new Date(sessions[0].updated).toLocaleString()
-                        : 'No sessions indexed here'}
-                    </dd>
-                  </div>
-                </dl>
-                <Button secondary onClick={() => setConfigure(true)}>
-                  Workspace configuration
-                </Button>
-              </Panel>
-              <Panel title="Working here" eyebrow="Execution boundary">
-                <p>
-                  Instructions run through your locally configured OpenCode engine. Use your local
-                  editor for editing and Git for authoritative change review. Sessions include
-                  bounded read-only text previews and runtime-reported diffs.
-                </p>
-                <p>There is no sandbox, approval gate, project deletion or remote provisioning.</p>
-                <Button secondary href="/docs/security">
-                  Security & limitations
-                </Button>
-              </Panel>
-            </div>
-            <Panel
-              title="Coding sessions"
-              eyebrow="Activity in this browser"
-              action={<NewSessionButton />}
-            >
-              <SessionList sessions={sessions} />
-            </Panel>
-            <Panel
-              title="File inventory"
-              eyebrow="Read-only"
-              action={
-                <button type="button" className="text-button" onClick={workspace.reload}>
-                  Refresh inventory
-                </button>
-              }
-            >
-              <SearchInput label="Search workspace files" value={search} onChange={setSearch} />
-              {workspace.data?.files.length ? (
-                <div className="inventory-list">
-                  {workspace.data.files
-                    .filter((file) => file.path.toLowerCase().includes(search.toLowerCase()))
-                    .map((file) => (
-                      <div key={file.path}>
-                        <Icon name="file" />
-                        <code>{file.path}</code>
-                        <span>{file.bytes ?? 'Unknown'} bytes</span>
-                      </div>
-                    ))}
-                  {!workspace.data.files.some((file) =>
-                    file.path.toLowerCase().includes(search.toLowerCase()),
-                  ) && (
-                    <EmptyState title="No matching files">
-                      Try another path or clear the search.
-                    </EmptyState>
-                  )}
-                </div>
-              ) : (
-                <EmptyState title="This workspace is empty">
-                  Add files using your local tools, then refresh the inventory. Atlas has no
-                  file-upload or creation endpoint.
-                </EmptyState>
-              )}
-            </Panel>
-          </>
+        <div className="project-toolbar">
+          <Button href={`/projects/${projectId}/editor`}>Open editor</Button>
+          <Badge>{p.status}</Badge>
+          <Button
+            secondary
+            onClick={() => {
+              setName(p.name)
+              setDescription(p.description)
+              setEditing(true)
+            }}
+          >
+            Edit project
+          </Button>
+          <Button
+            secondary
+            disabled={busy}
+            onClick={() => void update({ status: p.status === 'archived' ? 'active' : 'archived' })}
+          >
+            {p.status === 'archived' ? 'Restore project' : 'Archive project'}
+          </Button>
+          <Button secondary onClick={() => setDeleting(true)}>
+            Delete project
+          </Button>
+          <Button secondary onClick={resource.reload}>
+            Refresh project
+          </Button>
+        </div>
+        {error && (
+          <p className="error-state" role="alert">
+            {error}
+          </p>
         )}
+        <div className="model-summary">
+          <Panel title="Workspace">
+            <p>Independent, backend-managed directory. Paths are not exposed.</p>
+            <p>
+              {resource.data?.inventory.files.filter((f) => f.kind === 'file').length} visible files
+            </p>
+          </Panel>
+          <Panel title="Git status">
+            <p>
+              {resource.data?.git.branch ?? 'No repository'} · {resource.data?.git.files.length}{' '}
+              changes
+            </p>
+            <p>Git changes are not automatically attributed to an agent.</p>
+          </Panel>
+        </div>
+        <Panel title="Sessions">
+          <SessionList sessions={resource.data?.sessions.sessions ?? []} />
+        </Panel>
+        <Panel title="Project activity">
+          {resource.data?.activity.events.length ? (
+            <ol>
+              {resource.data.activity.events.slice(0, 50).map((event) => (
+                <li key={event.id}>
+                  <code>{event.type}</code> {event.path ?? ''} ·{' '}
+                  {new Date(event.created).toLocaleString()}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p>No recorded activity.</p>
+          )}
+        </Panel>
+        <Panel title="File inventory">
+          {resource.data?.inventory.files.length ? (
+            <ul>
+              {resource.data.inventory.files.slice(0, 200).map((f) => (
+                <li key={f.path}>
+                  <code>{f.path}</code> · {f.kind} · {f.bytes ?? 0} bytes
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState title="Workspace is empty">
+              Start a session to create files or use the editor file controls.
+            </EmptyState>
+          )}
+        </Panel>
       </div>
-      <ProjectLimitDialog open={configure} onClose={() => setConfigure(false)} />
+      <Dialog
+        title="Edit project"
+        open={editing}
+        onClose={() => setEditing(false)}
+        dismissible={!busy}
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            void update({ name, description })
+          }}
+        >
+          <label className="form-field">
+            Project name
+            <input required value={name} onChange={(e) => setName(e.target.value)} maxLength={80} />
+          </label>
+          <label className="form-field">
+            Description
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={2000}
+            />
+          </label>
+          <Button type="submit" disabled={busy}>
+            Save project
+          </Button>
+        </form>
+      </Dialog>
+      <Dialog
+        title="Delete project registration"
+        open={deleting}
+        onClose={() => setDeleting(false)}
+        dismissible={!busy}
+      >
+        <p>
+          The workspace directory and historical data are retained. This removes the project from
+          the active catalogue; it does not erase your source files.
+        </p>
+        <label className="form-field">
+          Type {p.name} to confirm
+          <input value={confirmation} onChange={(e) => setConfirmation(e.target.value)} />
+        </label>
+        <Button
+          disabled={busy || confirmation !== p.name}
+          onClick={() => {
+            setBusy(true)
+            void api
+              .deleteProject(projectId, confirmation)
+              .then(() => navigate('/projects'))
+              .catch((e) => setError(e.message))
+              .finally(() => setBusy(false))
+          }}
+        >
+          Confirm delete project
+        </Button>
+        {error && <p role="alert">{error}</p>}
+      </Dialog>
     </>
   )
 }

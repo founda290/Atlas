@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { filterRuntimeDiffs } from './session-diff.js'
 import type { AgentEvent } from './runtime.js'
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -24,6 +25,46 @@ export function normalizeRuntimeEvent(item: unknown): AgentEvent {
     type: typeof raw.type === 'string' ? raw.type : 'runtime.event',
     sessionId: typeof sessionId === 'string' ? sessionId : '',
     created: Date.now(),
-    data: properties,
+    error:
+      raw.type === 'session.error'
+        ? 'OpenCode reported an execution/provider error. Check the selected model and local provider configuration.'
+        : undefined,
+    data:
+      raw.type === 'message.updated'
+        ? { info: { id: info.id, role: info.role, sessionID: info.sessionID } }
+        : raw.type === 'message.part.updated'
+          ? {
+              part: {
+                id: part.id,
+                type: part.type,
+                messageID: part.messageID,
+                sessionID: part.sessionID,
+                text: part.text,
+                tool: part.tool,
+                state: { status: record(part.state).status },
+              },
+            }
+          : raw.type === 'message.part.delta'
+            ? {
+                messageID: properties.messageID,
+                partID: properties.partID,
+                field: properties.field,
+                delta: properties.delta,
+              }
+            : raw.type === 'session.diff'
+              ? {
+                  ...filterRuntimeDiffs(Array.isArray(properties.diff) ? properties.diff : []),
+                  diff: filterRuntimeDiffs(Array.isArray(properties.diff) ? properties.diff : [])
+                    .diffs,
+                }
+              : raw.type === 'session.status'
+                ? {
+                    status: {
+                      type: record(properties.status).type,
+                      attempt: record(properties.status).attempt,
+                      next: record(properties.status).next,
+                    },
+                  }
+                : {},
   }
 }

@@ -204,7 +204,7 @@ export function ProductPreview() {
           <p>No inventory loaded</p>
         </aside>
         <section>
-          <div className="preview-tab">Editor / read-only</div>
+          <div className="preview-tab">Editor / illustration</div>
           <EditorEmpty />
         </section>
         <section>
@@ -247,7 +247,7 @@ export function AppSidebar() {
       <div className="sidebar-guide">
         <span className="panel-eyebrow">Your environment</span>
         <p>
-          One local workspace.
+          Managed local workspaces.
           <br />
           Your runtime. Your machine.
         </p>

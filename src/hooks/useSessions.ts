@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react'
-import { readSessions } from '../services/session-store'
-export function useSessions() {
-  const [sessions, setSessions] = useState(readSessions)
+import { useCallback, useEffect } from 'react'
+import { api } from '../services/api'
+import { useResource } from './useResource'
+export function useSessions(projectId?: string) {
+  const load = useCallback(
+    (signal: AbortSignal) =>
+      projectId ? api.sessions(projectId, signal) : Promise.resolve({ sessions: [] }),
+    [projectId],
+  )
+  const resource = useResource(load)
   useEffect(() => {
-    const update = () => setSessions(readSessions())
-    window.addEventListener('atlas:sessions', update)
-    window.addEventListener('storage', update)
-    return () => {
-      window.removeEventListener('atlas:sessions', update)
-      window.removeEventListener('storage', update)
-    }
-  }, [])
-  return sessions
+    window.addEventListener('atlas:sessions', resource.reload)
+    return () => window.removeEventListener('atlas:sessions', resource.reload)
+  }, [resource.reload])
+  return resource.data?.sessions ?? []
 }

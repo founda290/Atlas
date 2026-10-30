@@ -79,11 +79,13 @@ export function FileExplorer({
         </ul>
       ) : (
         <EmptyState title={search ? 'No matching files' : 'Workspace is empty'}>
-          {search ? 'Try a different path.' : 'Add files using your local tools, then refresh.'}
+          {search
+            ? 'Try a different path.'
+            : 'Create files with the editor controls, or use local tools and refresh.'}
         </EmptyState>
       )}
       <div className="explorer-footer">
-        <span>{files.length} files · read-only access</span>
+        <span>{files.length} visible paths · backend inventory</span>
         <Button secondary href="/docs/workspace">
           File access limitations
         </Button>

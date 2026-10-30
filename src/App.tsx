@@ -1,5 +1,5 @@
 import { Component, useEffect, type ErrorInfo, type ReactNode } from 'react'
-import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, Route, Routes, useLocation } from 'react-router-dom'
 import { AppShell, PublicLayout } from './components'
 import { PreferencesProvider } from './hooks/preferences'
 import { AuthPage } from './pages/AuthPage'
@@ -9,6 +9,7 @@ import { ModelsPage } from './pages/ModelsPage'
 import { DashboardPage, ProjectPage, ProjectsPage } from './pages/ProjectPages'
 import { FeaturesPage, HomePage, PricingPage, StatusPage } from './pages/PublicPages'
 import { SettingsPage } from './pages/SettingsPage'
+import { ProjectEditorPage } from './pages/ProjectEditorPage'
 import { WorkspacePage } from './pages/WorkspacePage'
 function RouteEffects() {
   const location = useLocation()
@@ -72,6 +73,7 @@ export function AppRoutes() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="projects/:projectId" element={<ProjectPage />} />
+          <Route path="projects/:projectId/editor" element={<ProjectEditorPage />} />
           <Route path="projects/:projectId/sessions/:sessionId" element={<WorkspacePage />} />
           <Route path="models" element={<ModelsPage />} />
           <Route path="integrations/manage" element={<ManagedIntegrationsPage />} />
@@ -81,12 +83,11 @@ export function AppRoutes() {
     </PreferencesProvider>
   )
 }
+const router = createBrowserRouter([{ path: '*', element: <AppRoutes /> }])
 export default function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <RouterProvider router={router} />
     </ErrorBoundary>
   )
 }
