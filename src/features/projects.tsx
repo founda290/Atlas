@@ -62,8 +62,8 @@ export function NewSessionButton({
         }}
       >
         <p>
-          Create a real session in the local workspace. OpenCode and a configured provider must be
-          available.
+          Create a real session in this workspace. A connected model must be selected before you
+          send a message.
         </p>
         <form
           onSubmit={(event) => {
@@ -90,7 +90,7 @@ export function NewSessionButton({
               {error}
             </p>
           )}
-          {busy && <Loading label="Creating a session with the local runtime" />}
+          {busy && <Loading label="Creating a session" />}
           <div className="dialog-actions">
             <Button type="submit" disabled={busy}>
               {busy ? 'Creating session…' : 'Create session'}
@@ -150,7 +150,11 @@ export function ModelPicker({
     id = useId()
   const models =
     resource.data?.providers.flatMap((p) =>
-      p.models.filter((m) => m.available).map((m) => ({ ...m, providerName: p.name })),
+      p.connected
+        ? p.models
+            .filter((m) => m.available && m.toolCall)
+            .map((m) => ({ ...m, providerName: p.name }))
+        : [],
     ) ?? []
   return (
     <div className="form-field">
@@ -178,7 +182,8 @@ export function ModelPicker({
         <ErrorState message={resource.error} retry={resource.reload} />
       ) : !models.length ? (
         <p>
-          No connected tool-capable models reported. Configure a provider in OpenCode, then refresh.
+          No connected tool-capable models were reported by this workspace. Nothing is available to
+          select yet.
         </p>
       ) : (
         <small>Runtime-reported configuration, not a credential or network test.</small>

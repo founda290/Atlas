@@ -378,7 +378,8 @@ export function createAtlasServer(
             if (session.operation !== operation || session.status !== 'running') return
             session.lastError = {
               code: failure instanceof ServiceError ? failure.code : 'runtime_request_failed',
-              message: failure instanceof ServiceError ? failure.message : 'OpenCode prompt failed',
+              message:
+                failure instanceof ServiceError ? failure.message : 'The model request failed.',
             }
             session.status =
               failure instanceof ServiceError && failure.code === 'cancellation_unconfirmed'
@@ -486,7 +487,7 @@ export function createAtlasServer(
             : {
                 code: 'cancellation_unconfirmed',
                 message:
-                  'OpenCode did not confirm cancellation. The project remains locked until native idle is verified.',
+                  'The model worker did not confirm cancellation. Work remains marked active until idle is verified.',
               }
           await persist(session)
           await capture(session, true).catch(() => undefined)
@@ -494,7 +495,7 @@ export function createAtlasServer(
             type: cancelled ? 'session.cancelled' : 'session.error',
             sessionId: session.id,
             operationId: operation,
-            ...(!cancelled ? { error: 'OpenCode did not confirm cancellation' } : {}),
+            ...(!cancelled ? { error: 'The model worker did not confirm cancellation.' } : {}),
           })
           return json(
             res,

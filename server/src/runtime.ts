@@ -82,7 +82,11 @@ export class OpenCodeEngine {
     } catch {
       this.state = 'error'
       this.diagnostic = 'engine_shutdown_failed'
-      throw new ServiceError(503, 'OpenCode engine shutdown failed', 'engine_shutdown_failed')
+      throw new ServiceError(
+        503,
+        'The Atlas execution engine did not shut down cleanly.',
+        'engine_shutdown_failed',
+      )
     }
   }
   state: RuntimeLifecycle = 'stopped'
@@ -135,7 +139,7 @@ export class OpenCodeEngine {
       this.diagnostic = 'engine_start_failed_check_cli_path'
       throw new ServiceError(
         503,
-        'OpenCode could not start. Check the CLI on the backend PATH.',
+        'The Atlas worker could not start its model engine. Check worker availability.',
         this.diagnostic,
       )
     } finally {
@@ -173,16 +177,20 @@ function runtimeFailure(failure: unknown): ServiceError {
   if (code === 401 || code === 403 || name.includes('Auth'))
     return new ServiceError(
       503,
-      'Provider authentication failed. Connect it in OpenCode.',
+      'Provider authentication failed. Review this provider connection in Atlas.',
       'provider_authentication',
     )
   if (code === 429)
-    return new ServiceError(503, 'Provider rate limit reached. Retry later.', 'provider_rate_limit')
+    return new ServiceError(
+      503,
+      'Provider rate limit reached. You may choose another connected model using Change model, or retry later. Atlas never switches to a paid or different provider automatically.',
+      'provider_rate_limit',
+    )
   if (name.includes('ModelNotFound'))
     return new ServiceError(400, 'The selected model is not available.', 'model_unavailable')
   return new ServiceError(
     503,
-    'OpenCode/provider request failed. Check local provider configuration and network connectivity.',
+    'The model provider request failed. Check the provider connection and worker network availability.',
     'runtime_request_failed',
   )
 }
@@ -238,6 +246,8 @@ export class OpenCodeLocalRuntime implements AgentRuntime {
         name: m.name,
         context: m.limit?.context,
         output: m.limit?.output,
+        inputPrice: m.cost?.input,
+        outputPrice: m.cost?.output,
         toolCall:
           (m as unknown as { capabilities?: { toolcall?: boolean } }).capabilities?.toolcall ??
           m.tool_call ??

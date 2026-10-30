@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
+    "catalog:sync": "node scripts/sync-provider-catalog.mjs",
     "lint": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.test.json --noEmit",
     "preview": "vite preview",
     "server:build": "tsc -p server/tsconfig.json",

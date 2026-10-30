@@ -156,7 +156,8 @@ export const articles: Article[] = [
   {
     id: 'providers',
     title: 'Accounts and AI providers',
-    description: 'Identity is separate from model execution.',
+    description:
+      'Browse the provider directory; account identity is separate from model execution.',
     sections: [
       {
         id: 'account',
@@ -168,9 +169,9 @@ export const articles: Article[] = [
       },
       {
         id: 'provider',
-        heading: 'No provider configuration in the hosted app',
+        heading: 'Browse providers; wait to add credentials',
         paragraphs: [
-          'Hosted model selection and prompt execution are not available yet. Do not enter provider secrets into Atlas; there is no hosted model service to receive them.',
+          'Atlas includes a real provider and agent-model catalog for browsing. BYOK credential entry and hosted model execution are not available yet. Do not enter provider secrets into Atlas until an authenticated worker and protected server-side credential store are deployed.',
         ],
       },
     ],

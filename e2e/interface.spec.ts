@@ -195,9 +195,9 @@ test('project search and creation controls plus honest integration availability'
   await page.keyboard.press('Escape')
   await page.goto('/integrations')
   await expect(
-    page.getByRole('heading', { name: 'Connections are not available yet.' }),
+    page.getByRole('heading', { name: 'Browse providers. Connect when the worker is ready.' }),
   ).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Hosted AI execution' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Atlas provider directory' })).toBeVisible()
 })
 // Test-only runtime fixtures. None of these records is imported by product code.
 async function fixtureSession(page: Page) {
@@ -364,19 +364,19 @@ for (const width of [360, 390, 430, 768, 1024, 1440]) {
     await expect(page.getByText('No activity received yet', { exact: true })).toBeVisible()
     await page.getByRole('tab', { name: 'Agent', exact: true }).click()
     await page
-      .getByRole('textbox', { name: 'Instruction for OpenCode' })
+      .getByRole('textbox', { name: 'Message the assistant' })
       .fill('Test fixture submission')
-    await page.getByRole('textbox', { name: 'Instruction for OpenCode' }).press('Shift+Enter')
-    await expect(page.getByRole('textbox', { name: 'Instruction for OpenCode' })).toHaveValue(
+    await page.getByRole('textbox', { name: 'Message the assistant' }).press('Shift+Enter')
+    await expect(page.getByRole('textbox', { name: 'Message the assistant' })).toHaveValue(
       'Test fixture submission\n',
     )
-    await page.getByRole('textbox', { name: 'Instruction for OpenCode' }).press('Enter')
+    await page.getByRole('textbox', { name: 'Message the assistant' }).press('Enter')
     await expect(page.getByRole('button', { name: 'Stop execution' })).toBeVisible()
     await page.getByRole('button', { name: 'Stop execution' }).click()
     await expect(page.locator('.workspace-header-actions')).toContainText('cancelled')
   })
 }
-test('API failures stay visible; hosted Chat and dashboard never call the absent local API', async ({
+test('API failures stay visible; hosted Chat probes the worker only when requested', async ({
   page,
 }) => {
   const apiRequests: string[] = []
@@ -387,11 +387,14 @@ test('API failures stay visible; hosted Chat and dashboard never call the absent
       json: { data: { error: { message: 'Test-only unavailable backend' } } },
     })
   })
-  for (const route of ['/projects', '/projects/11111111-1111-4111-8111-111111111111', '/models']) {
+  for (const route of ['/projects', '/projects/11111111-1111-4111-8111-111111111111']) {
     await page.goto(route)
     await stable(page)
     await expect(page.getByRole('alert').first()).toContainText('Test-only unavailable backend')
   }
+  await page.goto('/models')
+  await stable(page)
+  await expect(page.getByText(/Worker status could not be loaded/)).toBeVisible()
   expect(apiRequests.length).toBeGreaterThan(0)
   for (const route of ['/dashboard', '/chat', '/integrations/manage', '/settings']) {
     const before = apiRequests.length
@@ -399,8 +402,13 @@ test('API failures stay visible; hosted Chat and dashboard never call the absent
     await stable(page)
     await expect(page.getByRole('alert')).toHaveCount(0)
     expect(apiRequests).toHaveLength(before)
-    if (route === '/chat')
+    if (route === '/chat') {
       await expect(page.getByRole('heading', { name: 'What are you working on?' })).toBeVisible()
+      await page.getByRole('button', { name: 'Discover models' }).click()
+      await expect(page.getByRole('alert')).toContainText('Atlas could not reach a model worker')
+      await expect(page.getByRole('textbox', { name: 'Message' })).toBeDisabled()
+      expect(apiRequests).toHaveLength(before + 1)
+    }
   }
 })
 
@@ -529,15 +537,15 @@ test('runtime provider/model discovery is not a credential guarantee', async ({ 
         data: {
           providers: [
             {
-              id: 'test-provider-a',
-              name: 'Test Provider A',
+              id: 'openai',
+              name: 'OpenAI',
               connected: true,
               authentication: 'runtime-connected',
               models: [],
             },
             {
-              id: 'test-provider-b',
-              name: 'Test Provider B',
+              id: 'anthropic',
+              name: 'Anthropic',
               connected: true,
               authentication: 'runtime-connected',
               models: [],
@@ -549,10 +557,17 @@ test('runtime provider/model discovery is not a credential guarantee', async ({ 
   )
   await page.goto('/models')
   await stable(page)
+  await expect(page.getByText('232 providers')).toBeVisible()
+  await expect(
+    page.getByText(/2 providers are reported as connected by the current worker/),
+  ).toBeVisible()
+  await expect(page.getByText(/Catalog metadata is not proof/)).toBeVisible()
+  await page.getByRole('combobox', { name: 'Filter providers' }).selectOption('connected')
   await expect(page.locator('.provider-grid .directory-card')).toHaveCount(2)
-  await page.getByRole('searchbox', { name: 'Search discovered providers' }).fill('Provider B')
+  await page.getByRole('searchbox', { name: 'Search Atlas providers and models' }).fill('Anthropic')
   await expect(page.locator('.provider-grid .directory-card')).toHaveCount(1)
-  await expect(page.locator('.provider-grid')).toContainText('not independently verified')
+  await expect(page.locator('.provider-grid')).toContainText('Worker-reported connection')
+  await expect(page.locator('.provider-grid')).toContainText('Anthropic')
 })
 
 for (const width of [390, 1440]) {

@@ -31,6 +31,7 @@ export function useAgentSession(id: string, projectId?: string) {
   const [status, setStatus] = useState<SessionStatus>('ready')
   const [stream, setStream] = useState<'connecting' | 'connected' | 'reconnecting'>('connecting')
   const [error, setError] = useState('')
+  const [errorCode, setErrorCode] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [revision, setRevision] = useState(0)
   const partText = useRef(new Map<string, { messageId: string; text: string }>())
@@ -46,6 +47,7 @@ export function useAgentSession(id: string, projectId?: string) {
     setEvents([])
     setDiffs([])
     setError('')
+    setErrorCode('')
     setStatus('ready')
     setStream('connecting')
     partText.current.clear()
@@ -55,6 +57,7 @@ export function useAgentSession(id: string, projectId?: string) {
   useEffect(() => {
     if (!history.data) return
     if (history.data.error) setError(history.data.error)
+    if (history.data.errorCode) setErrorCode(history.data.errorCode)
     if (history.data.status) setKnownStatus(history.data.status)
     const historyMessages = history.data.messages
     const parsed = parseMessages(historyMessages)
@@ -112,10 +115,12 @@ export function useAgentSession(id: string, projectId?: string) {
             )
           }
         }
-        if (type === 'session.error')
+        if (type === 'session.error') {
+          setErrorCode(asString(raw.errorCode))
           setError(
             asString(raw.error) || 'Runtime execution error; check local provider configuration.',
           )
+        }
         if (type === 'message.part.updated') {
           const part = asRecord(data.part)
           if (typeof part.id === 'string' && typeof part.type === 'string')
@@ -175,11 +180,13 @@ export function useAgentSession(id: string, projectId?: string) {
           setKnownStatus(terminal[type])
           setRevision((value) => value + 1)
           history.reload()
-          if (type === 'session.failed')
+          if (type === 'session.failed') {
+            setErrorCode(asString(raw.errorCode))
             setError(
               asString(raw.error) ||
-                'The agent operation failed. Check the local runtime and provider configuration.',
+                'The model operation failed. No successful response was returned.',
             )
+          }
         }
       } catch {
         setError('An unreadable runtime event was received. Refresh message history to recover.')
@@ -218,6 +225,7 @@ export function useAgentSession(id: string, projectId?: string) {
     }
     setSubmitting(true)
     setError('')
+    setErrorCode('')
     try {
       const result = await api.prompt(id, text.trim(), projectId)
       setKnownStatus(result.status)
@@ -243,5 +251,5 @@ export function useAgentSession(id: string, projectId?: string) {
       )
     }
   }
-  return { messages, events, diffs, status, stream, busy, send, cancel, error, history, revision }
+  return { messages, events, diffs, status, stream, busy, send, cancel, error, errorCode, history, revision }
 }

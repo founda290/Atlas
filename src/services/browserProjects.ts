@@ -78,7 +78,7 @@ function database(): Promise<IDBDatabase> {
     if (typeof indexedDB === 'undefined') {
       reject(
         new Error(
-          'This browser does not support IndexedDB. Use a supported browser or the local backend.',
+          'This browser does not support IndexedDB. Use a supported browser to store projects on this device.',
         ),
       )
       return

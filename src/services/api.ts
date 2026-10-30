@@ -38,7 +38,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     })
   } catch {
     throw new ApiError(
-      'Atlas API could not be reached. Start the local backend with npm run server:start.',
+      'Atlas could not reach the workspace service. No operation was completed.',
       0,
     )
   }

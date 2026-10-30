@@ -91,6 +91,8 @@ export interface ModelInfo extends ModelSelection {
   reasoning: boolean
   context?: number
   output?: number
+  inputPrice?: number
+  outputPrice?: number
 }
 export interface ProviderInfo {
   id: string

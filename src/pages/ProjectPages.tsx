@@ -74,7 +74,7 @@ function CreateProject({ done }: { done: (project: Project) => void }) {
         >
           <p>
             Choose browser-local storage for editing on this device, or a backend-managed Git
-            workspace for local OpenCode execution. Cloud creation is disabled.
+            workspace connected to a configured runtime. Cloud creation is disabled.
           </p>
           <label className="form-field">
             Project name
@@ -91,7 +91,7 @@ function CreateProject({ done }: { done: (project: Project) => void }) {
           <label className="form-field">
             Workspace location
             <select value={mode} onChange={(event) => setMode(event.target.value)}>
-              <option value="managed">Local backend — OpenCode on your machine</option>
+              <option value="managed">Managed runtime workspace</option>
               <option value="browser">Browser-local — no backend required</option>
               <option value="cloud" disabled>
                 Cloud — disabled for now
@@ -124,7 +124,7 @@ export function ProjectModes() {
           Browser-local projects
         </Button>
         <Button secondary href="/projects">
-          Local backend projects
+          Managed projects
         </Button>
         <Button secondary href="/cloud-projects">
           Cloud — disabled
@@ -134,8 +134,8 @@ export function ProjectModes() {
         </Button>
       </div>
       <p>
-        Browser-local works on this website without the local API. OpenCode execution requires the
-        backend on your machine. Cloud execution is not enabled.
+        Browser projects work on this device without a hosted runtime. Managed execution is not yet
+        available in the hosted app.
       </p>
     </Panel>
   )
@@ -148,7 +148,7 @@ export function DashboardPage() {
       <PageHeader
         eyebrow="Workspace / Dashboard"
         title="Your work, in focus."
-        description="Persistent projects and your local coding runtime."
+        description="Your projects and the workspace runtime available to them."
         action={<Button href="/projects">Open projects</Button>}
       />
       <div className="app-page-body">
