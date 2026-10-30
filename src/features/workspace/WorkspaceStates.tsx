@@ -5,10 +5,10 @@ export function EditorEmpty() {
       <Icon name="file" />
       <h3>Start with the context.</h3>
       <p>
-        Select a file to inspect its inventory details. File contents and editing are not exposed by
-        the current API.
+        Select a supported text file to read its contents. Files are read-only; binary, oversized
+        and restricted paths are not exposed.
       </p>
-      <span className="mono muted">Read-only inventory</span>
+      <span className="mono muted">Read-only workspace</span>
     </div>
   )
 }

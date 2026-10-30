@@ -95,7 +95,7 @@ export const articles: Article[] = [
         heading: 'Workspace inventory',
         paragraphs: [
           'File paths and sizes come from the API, not sample frontend data. Expand folders, search paths and select a file to inspect its metadata.',
-          'The API does not expose file contents or save operations. The editor region explains this limitation rather than showing invented code. Read and edit files with your local editor.',
+          'Select a supported UTF-8 text file to read its actual contents (256 KiB maximum). Sensitive paths, symlinks, binary and invalid UTF-8 files are blocked. Refresh reads the file again; there is no save operation. Use your local editor to make changes.',
         ],
       },
       {
@@ -103,7 +103,7 @@ export const articles: Article[] = [
         heading: 'Activity is not a terminal',
         paragraphs: [
           'Activity records the real lifecycle and tool events received during the current connection. It is not persisted or replayed by the server. Message history is fetched separately when you return to a session.',
-          'No verified terminal stream is exposed. Atlas can display observed diffs from actual message summaries or session.diff events. There is no on-demand diff endpoint, so inspect authoritative changes in your local version-control tools.',
+          'No verified terminal stream is exposed. Changes fetches the runtime-reported session diff on demand, with manual refresh and refresh after a terminal lifecycle event. Restricted or oversized entries are omitted with a count. A runtime diff is not an authoritative filesystem comparison; review local changes in Git.',
         ],
       },
     ],
@@ -181,16 +181,16 @@ export const articles: Article[] = [
         heading: 'A backend-owned engine',
         paragraphs: [
           'AgentRuntime defines status, session creation, prompt, abort, messages, diff, events and close. OpenCodeLocalRuntime implements this contract with the official @opencode-ai/sdk.',
-          'The backend starts OpenCode on loopback. The browser never connects directly to the engine. The API currently exposes only a subset of AgentRuntime; diff is not an HTTP endpoint.',
+          'The backend starts OpenCode on loopback. The browser never connects directly to the engine. The API exposes a bounded, filtered session-diff endpoint. It reports OpenCode observations, not an independent comparison of the current filesystem.',
         ],
       },
       {
         id: 'requests',
         heading: 'The existing API',
         paragraphs: [
-          'All browser requests use relative URLs. Health reports runtime status and provider entries. Sessions expose create, messages, events and cancel. The fixed workspace exposes status/inventory.',
+          'All browser requests use relative URLs. Health reports runtime status and provider entries. Sessions expose create, messages, events, cancel and filtered diff snapshots. The fixed workspace exposes status/inventory and bounded read-only UTF-8 file content.',
         ],
-        code: 'GET  /api/v1/health\nPOST /api/v1/sessions\nGET  /api/v1/sessions/:id/messages\nPOST /api/v1/sessions/:id/messages\nGET  /api/v1/sessions/:id/events\nPOST /api/v1/sessions/:id/cancel\nGET  /api/v1/workspaces/atlas-test-workspace/status',
+        code: 'GET  /api/v1/health\nPOST /api/v1/sessions\nGET  /api/v1/sessions/:id/messages\nPOST /api/v1/sessions/:id/messages\nGET  /api/v1/sessions/:id/events\nPOST /api/v1/sessions/:id/cancel\nGET  /api/v1/workspaces/atlas-test-workspace/status\nGET  /api/v1/workspaces/atlas-test-workspace/file?path=sample.ts\nGET  /api/v1/sessions/:id/diff',
         language: 'http',
       },
       {

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Badge, Button, ErrorState, Loading, Tabs } from '../components/ui'
-import { Activity, Changes } from '../features/workspace/Activity'
+import { Activity } from '../features/workspace/Activity'
+import { SessionChanges } from '../features/workspace/SessionChanges'
 import { Conversation } from '../features/workspace/Conversation'
 import { FileDetails, FileExplorer } from '../features/workspace/FileExplorer'
 import { EditorEmpty } from '../features/workspace/WorkspaceStates'
 import { NewSessionButton } from '../features/projects'
+import { usePreferences } from '../hooks/preferences'
 import { useAgentSession } from '../hooks/useAgentSession'
 import { useResource } from '../hooks/useResource'
 import { useSessions } from '../hooks/useSessions'
@@ -29,6 +31,7 @@ export function WorkspacePage() {
 }
 function SessionWorkspace({ sessionId }: { sessionId: string }) {
   const navigate = useNavigate()
+  const { preferences } = usePreferences()
   const session = useAgentSession(sessionId)
   const workspace = useResource(loadWorkspace)
   const records = useSessions().filter((record) => record.workspaceId === WORKSPACE_ID)
@@ -158,12 +161,15 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
                 />
               )}
             </aside>
-            <section className="workspace-editor" aria-label="Read-only file details">
+            <section
+              className={`workspace-editor ${preferences.wrapCode ? 'wrap-code' : ''}`}
+              aria-label="Read-only file viewer"
+            >
               <div className="workbench-panel-header">
                 <h2>{file ? file.path.split('/').pop() : 'File details'}</h2>
-                <Badge>Inventory only</Badge>
+                <Badge>Read-only</Badge>
               </div>
-              {file ? <FileDetails file={file} /> : <EditorEmpty />}
+              {file ? <FileDetails file={file} revision={session.revision} /> : <EditorEmpty />}
             </section>
             <div className="workspace-agent">
               <Conversation
@@ -179,7 +185,12 @@ function SessionWorkspace({ sessionId }: { sessionId: string }) {
               <Activity events={session.events} />
             </div>
             <div className="workspace-changes">
-              <Changes diffs={session.diffs} />
+              <SessionChanges
+                key={sessionId}
+                sessionId={sessionId}
+                active={view === 'changes'}
+                revision={session.revision}
+              />
             </div>
           </div>
         </>

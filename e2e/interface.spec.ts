@@ -196,6 +196,38 @@ test('search and view controls work; unsupported project actions explain limits'
 })
 // Test-only runtime fixtures. None of these records is imported by product code.
 async function fixtureSession(page: Page) {
+  await page.route('**/api/v1/workspaces/atlas-test-workspace/file?*', (route) => {
+    const file = new URL(route.request().url()).searchParams.get('path') ?? ''
+    const content = "export const atlasFixture = 'read-only UI fixture'\n"
+    return route.fulfill({
+      json: {
+        data: {
+          workspaceId: 'atlas-test-workspace',
+          path: file,
+          content,
+          bytes: content.length,
+          encoding: 'utf-8',
+          readOnly: true,
+        },
+      },
+    })
+  })
+  await page.route('**/api/v1/sessions/test-session-id/diff', (route) =>
+    route.fulfill({
+      json: {
+        data: {
+          sessionId: 'test-session-id',
+          diffs: [
+            { file: 'src/test.ts', before: 'old\n', after: 'new\n', additions: 1, deletions: 1 },
+          ],
+          omitted: 0,
+          source: 'opencode-session',
+          authoritativeFilesystem: false,
+          fetchedAt: Date.now(),
+        },
+      },
+    }),
+  )
   await page.route('**/api/v1/sessions/test-session-id/messages', async (route) => {
     if (route.request().method() === 'POST')
       return route.fulfill({ json: { data: { status: 'running' } } })
@@ -298,9 +330,7 @@ for (const width of [360, 390, 430, 768, 1024, 1440]) {
       })
     await page.getByRole('tab', { name: 'Files', exact: true }).click()
     await page.getByRole('button', { name: /test.ts/ }).click()
-    await expect(
-      page.getByRole('heading', { name: 'Open this file in your local editor.' }),
-    ).toBeVisible()
+    await expect(page.locator('.file-source')).toContainText('read-only UI fixture')
     await noOverflow(page)
     await page.getByRole('tab', { name: 'Changes', exact: true }).click()
     await expect(page.locator('.diff-code')).toContainText('new')
@@ -458,3 +488,126 @@ test('runtime-discovered provider search does not invent models or credentials',
   await expect(page.locator('.provider-grid')).toContainText('Not verified')
   await expect(page.locator('.provider-grid')).toContainText('Discovery not exposed')
 })
+
+for (const width of [390, 1440]) {
+  test(`read-only content and on-demand diff refresh at ${width}px (API fixtures)`, async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await page.setViewportSize({ width, height: 900 })
+    await fixtureSession(page)
+    let source = 'export const fixtureValue = 1\n'
+    let fileFailure = false
+    let diffFailure = false
+    let diffCalls = 0
+    await page.route('**/api/v1/workspaces/atlas-test-workspace/file?*', (route) =>
+      route.fulfill({
+        status: fileFailure ? 413 : 200,
+        json: {
+          data: fileFailure
+            ? { error: { message: 'Fixture: file exceeds the 256 KiB text-preview limit' } }
+            : {
+                workspaceId: 'atlas-test-workspace',
+                path: 'src/test.ts',
+                content: source,
+                bytes: source.length,
+                encoding: 'utf-8',
+                readOnly: true,
+              },
+        },
+      }),
+    )
+    await page.route('**/api/v1/sessions/test-session-id/diff', (route) => {
+      diffCalls++
+      return route.fulfill({
+        status: diffFailure ? 503 : 200,
+        json: {
+          data: diffFailure
+            ? { error: { message: 'Fixture: runtime diff unavailable' } }
+            : {
+                sessionId: 'test-session-id',
+                diffs: [
+                  {
+                    file: 'src/test.ts',
+                    before: 'before fixture\n',
+                    after: 'after fixture\n',
+                    additions: 1,
+                    deletions: 1,
+                  },
+                ],
+                omitted: 1,
+                source: 'opencode-session',
+                authoritativeFilesystem: false,
+                fetchedAt: Date.now(),
+              },
+        },
+      })
+    })
+    await page.goto('/projects/atlas-test-workspace/sessions/test-session-id')
+    await expect(page.locator('.message')).toHaveCount(2)
+    expect(diffCalls).toBe(0)
+    await page.getByRole('tab', { name: 'Files', exact: true }).click()
+    await page.getByRole('button', { name: /test.ts/ }).click()
+    await expect(page.locator('.file-source')).toContainText('export const fixtureValue = 1')
+    await page.locator('.file-content').getByRole('button', { name: 'Copy code' }).click()
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(source)
+    expect(await page.locator('.file-content textarea').count()).toBe(0)
+    await noOverflow(page)
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
+    await page.screenshot({ path: `test-results/phase4-review/${width}-file.png`, fullPage: true })
+    const { default: AxeBuilder } = await import('@axe-core/playwright')
+    expect(
+      (await new AxeBuilder({ page }).analyze()).violations.filter(
+        (item) => item.impact === 'critical' || item.impact === 'serious',
+      ),
+    ).toEqual([])
+    fileFailure = true
+    await page.getByRole('button', { name: 'Refresh file' }).click()
+    await expect(page.locator('.file-content').getByRole('alert')).toContainText('256 KiB')
+    await expect(page.locator('.file-source')).toHaveCount(0)
+    fileFailure = false
+    source = 'export const fixtureValue = 2\n'
+    await page.locator('.file-content').getByRole('button', { name: 'Try again' }).click()
+    await expect(page.locator('.file-source')).toContainText('export const fixtureValue = 2')
+    await page.getByRole('tab', { name: 'Changes', exact: true }).click()
+    await expect(page.getByLabel('Runtime diff for src/test.ts')).toContainText('after fixture')
+    await expect(page.locator('.changes-view')).toContainText(
+      'not an authoritative filesystem or Git comparison',
+    )
+    await expect(page.locator('.changes-view')).toContainText('1 entry omitted')
+    await noOverflow(page)
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
+    await page.screenshot({ path: `test-results/phase4-review/${width}-diff.png`, fullPage: true })
+    expect(
+      (await new AxeBuilder({ page }).analyze()).violations.filter(
+        (item) => item.impact === 'critical' || item.impact === 'serious',
+      ),
+    ).toEqual([])
+    if (width === 1440) {
+      await page.getByRole('button', { name: 'Use light workspace theme' }).click()
+      expect(
+        (await new AxeBuilder({ page }).analyze()).violations.filter(
+          (item) => item.impact === 'critical' || item.impact === 'serious',
+        ),
+      ).toEqual([])
+      await page.screenshot({
+        path: 'test-results/phase4-review/1440-diff-light.png',
+        fullPage: true,
+      })
+    }
+    diffFailure = true
+    await page.getByRole('button', { name: 'Refresh diff' }).click()
+    await expect(page.locator('.changes-view').getByRole('alert')).toContainText(
+      'runtime diff unavailable',
+    )
+    await expect(page.getByLabel('Runtime diff for src/test.ts')).toHaveCount(0)
+    expect(
+      (await new AxeBuilder({ page }).analyze()).violations.filter(
+        (item) => item.impact === 'critical' || item.impact === 'serious',
+      ),
+    ).toEqual([])
+  })
+}

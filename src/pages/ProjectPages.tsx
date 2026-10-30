@@ -363,7 +363,8 @@ function LocalProjectPage() {
               <Panel title="Working here" eyebrow="Execution boundary">
                 <p>
                   Instructions run through your locally configured OpenCode engine. Use your local
-                  editor and Git for file content, editing and change review.
+                  editor for editing and Git for authoritative change review. Sessions include
+                  bounded read-only text previews and runtime-reported diffs.
                 </p>
                 <p>There is no sandbox, approval gate, project deletion or remote provisioning.</p>
                 <Button secondary href="/docs/security">

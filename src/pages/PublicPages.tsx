@@ -201,10 +201,10 @@ const capabilityDetails = [
   },
   {
     title: 'Files and code',
-    status: 'Inventory only',
-    text: 'Search and expand workspace paths, select a file and inspect its metadata.',
+    status: 'Read-only text',
+    text: 'Search workspace paths and read supported UTF-8 text files up to 256 KiB.',
     detail:
-      'The current API does not return file contents or save edits. Use your local editor for code and change review.',
+      'Restricted paths and symlinks are blocked. Review runtime session diffs on demand; use your local editor to save changes and Git for an authoritative comparison.',
   },
   {
     title: 'Models and providers',

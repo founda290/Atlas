@@ -2704,3 +2704,57 @@ select {
     height: max(560px, calc(100dvh - 300px));
   }
 }
+
+/* Phase 4A: actual read-only source content, never a simulated editable buffer. */
+.file-content {
+  min-width: 0;
+  margin-top: 24px;
+  border-top: 1px solid var(--app-border);
+  padding-top: 16px;
+}
+.file-content-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.file-content-toolbar .text-button {
+  font-size: 10px;
+}
+.file-content-info {
+  font-size: 10px;
+  color: var(--app-muted);
+  line-height: 1.7;
+}
+.file-source {
+  min-width: 0;
+}
+.file-source .code-block {
+  margin: 18px 0;
+}
+.file-source pre {
+  max-height: 560px;
+  overflow: auto;
+  white-space: pre;
+}
+.file-source .code-block pre {
+  background: var(--app-bg);
+}
+.app-shell[data-app-theme='light'] .diff-removed,
+.app-shell[data-app-theme='light'] .diff-line.removed {
+  color: #a4372a;
+}
+.wrap-code .file-source pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.file-inventory-details {
+  margin-top: 20px;
+  border-top: 1px solid var(--app-border);
+  padding-top: 16px;
+}
+.file-inventory-details > summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--app-muted);
+}
