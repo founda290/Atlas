@@ -2,7 +2,8 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { AppRoutes } from '../App'
-import { authenticate, register, request } from '../services/api'
+import { request } from '../services/api'
+import { account } from '../services/account'
 import { Tabs } from '../components/ui'
 function route(path: string) {
   return render(
@@ -15,7 +16,7 @@ describe('account entry integration boundary', () => {
   it('validates login and toggles visibility without sending credentials', async () => {
     const fetch = vi.spyOn(window, 'fetch')
     route('/login')
-    fireEvent.click(screen.getByRole('button', { name: 'Sign in — not enabled' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
     expect(await screen.findByText('Enter a valid email address.')).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Email address'), {
       target: { value: 'dev@example.com' },
@@ -25,15 +26,17 @@ describe('account entry integration boundary', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Show password' }))
     expect(screen.getByLabelText('Password', { exact: true })).toHaveAttribute('type', 'text')
-    fireEvent.click(screen.getByRole('button', { name: 'Sign in — not enabled' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Account authentication is not enabled',
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Neon Auth is not configured')
     expect(fetch).not.toHaveBeenCalled()
   })
-  it('never resolves the unimplemented auth service successfully', async () => {
-    await expect(authenticate()).rejects.toThrow('not enabled')
-    await expect(register()).rejects.toThrow('not enabled')
+  it('does not submit account credentials when configuration is absent', async () => {
+    await expect(account.signIn('test@example.com', 'test-only-password')).rejects.toThrow(
+      'not configured',
+    )
+    await expect(account.signUp('Test', 'test@example.com', 'test-only-password')).rejects.toThrow(
+      'not configured',
+    )
   })
 })
 describe('shared UI and routes', () => {

@@ -13,6 +13,7 @@ import {
 } from '../components/ui'
 import { NewSessionButton, SessionList } from '../features/projects'
 import { api } from '../services/api'
+import { browserProjects } from '../services/browserProjects'
 import { useResource } from '../hooks/useResource'
 import type { Project } from '../types/api'
 const loadProjects = (signal: AbortSignal) => api.projects(signal)
@@ -27,6 +28,10 @@ export function MissingProject() {
   )
 }
 function CreateProject({ done }: { done: (project: Project) => void }) {
+  const navigate = useNavigate()
+  const [mode, setMode] = useState(() =>
+    ['localhost', '127.0.0.1'].includes(location.hostname) ? 'managed' : 'browser',
+  )
   const [open, setOpen] = useState(false),
     [name, setName] = useState(''),
     [description, setDescription] = useState(''),
@@ -41,6 +46,22 @@ function CreateProject({ done }: { done: (project: Project) => void }) {
             event.preventDefault()
             setBusy(true)
             setError('')
+            if (!['browser', 'managed'].includes(mode)) {
+              setError('Cloud project creation is disabled.')
+              setBusy(false)
+              return
+            }
+            if (mode === 'browser') {
+              void browserProjects
+                .create(name, description)
+                .then((p) => {
+                  setOpen(false)
+                  navigate(`/browser-projects/${p.id}`)
+                })
+                .catch((e) => setError(e.message))
+                .finally(() => setBusy(false))
+              return
+            }
             void api
               .createProject(name, description)
               .then((p) => {
@@ -52,8 +73,8 @@ function CreateProject({ done }: { done: (project: Project) => void }) {
           }}
         >
           <p>
-            Create a real Git-enabled workspace in the backend-managed location. Host paths stay
-            private.
+            Choose browser-local storage for editing on this device, or a backend-managed Git
+            workspace for local OpenCode execution. Cloud creation is disabled.
           </p>
           <label className="form-field">
             Project name
@@ -69,8 +90,12 @@ function CreateProject({ done }: { done: (project: Project) => void }) {
           </label>
           <label className="form-field">
             Workspace location
-            <select value="managed" onChange={() => undefined}>
-              <option value="managed">Managed local workspaces</option>
+            <select value={mode} onChange={(event) => setMode(event.target.value)}>
+              <option value="managed">Local backend — OpenCode on your machine</option>
+              <option value="browser">Browser-local — no backend required</option>
+              <option value="cloud" disabled>
+                Cloud — disabled for now
+              </option>
             </select>
           </label>
           {error && (
@@ -91,6 +116,30 @@ function CreateProject({ done }: { done: (project: Project) => void }) {
     </>
   )
 }
+export function ProjectModes() {
+  return (
+    <Panel title="Project modes">
+      <div className="project-mode-links">
+        <Button secondary href="/browser-projects">
+          Browser-local projects
+        </Button>
+        <Button secondary href="/projects">
+          Local backend projects
+        </Button>
+        <Button secondary href="/cloud-projects">
+          Cloud — disabled
+        </Button>
+        <Button secondary href="/account">
+          Your account
+        </Button>
+      </div>
+      <p>
+        Browser-local works on this website without the local API. OpenCode execution requires the
+        backend on your machine. Cloud execution is not enabled.
+      </p>
+    </Panel>
+  )
+}
 export function DashboardPage() {
   const projects = useResource(loadProjects),
     health = useResource(loadHealth)
@@ -103,6 +152,7 @@ export function DashboardPage() {
         action={<Button href="/projects">Open projects</Button>}
       />
       <div className="app-page-body">
+        <ProjectModes />
         <div className="model-summary">
           <Panel title="Projects">
             <p>
@@ -168,6 +218,7 @@ export function ProjectsPage() {
         action={<CreateProject done={(p) => navigate(`/projects/${p.id}`)} />}
       />
       <div className="app-page-body">
+        <ProjectModes />
         <div className="project-toolbar">
           <SearchInput label="Search projects" value={search} onChange={setSearch} />
           <label>

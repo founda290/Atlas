@@ -346,7 +346,7 @@ export function StatusPage({ code = '404' }: { code?: string }) {
     '400': ['That request needs another look.', 'Check the address and try again.'],
     '401': [
       'An account boundary, not a login session.',
-      'Authentication is not enabled in this local preview.',
+      'Sign in through the account page. Browser-local editing does not require an account.',
     ],
     '403': ['This resource is not available.', 'No action was completed by this page.'],
     '404': ['This page went looking for context.', 'The route does not exist, or it has moved.'],

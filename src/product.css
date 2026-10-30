@@ -2856,3 +2856,52 @@ select {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+
+/* Account/project modes preserve the existing technical workspace palette. */
+.project-mode-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin: 12px 0;
+}
+.browser-editor-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  gap: 20px;
+  margin-top: 20px;
+}
+.browser-editor-grid > * {
+  min-width: 0;
+}
+.browser-file-button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.browser-file-button[aria-current='true'] {
+  background: var(--app-surface);
+  font-weight: 700;
+  outline: 1px solid #789665;
+}
+.browser-awake {
+  margin-top: 20px;
+}
+.sidebar-bottom > .text-link {
+  display: block;
+  margin: 8px 0;
+}
+@media (max-width: 767px) {
+  .browser-editor-grid {
+    grid-template-columns: 1fr;
+  }
+  .browser-editor-grid .cm-scroller {
+    max-width: 100%;
+  }
+}

@@ -4,6 +4,21 @@ Atlas is a React/Vite local-first coding environment backed by Node and OpenCode
 
 **Status:** trusted local development software, not a public execution service or OS sandbox. Real model coding acceptance is **blocked in the Arena sandbox**: the selected `opencode/glm-5.3-flash-free` endpoint is `opencode.ai`, outside the available outbound allowlist. The 15-second attempt returned `model_timeout`, with no tool events/file edits. Do not confuse working discovery or passing mocks with successful generation. See [Phase 4B evidence](docs/PHASE-4B.md).
 
+## Accounts and project modes
+
+- **Account creation/sign-in are now implemented**, using the maintained Better Auth client against the configured Neon Auth service. Session verification, sign-out, email verification and password-reset flows are available. Provider/cookie/email/origin setup still needs live acceptance; no actual account was created or logged into from this sandbox.
+- **Browser-local projects** at `/browser-projects` work without the local backend or an account: real IndexedDB source editing, concurrency checks, rename/delete, export/import and optional screen wake lock. This is an editor/storage mode, **not browser-hosted OpenCode/Git/terminal execution or background agents**.
+- **Local backend projects** preserve all Phase 4B OpenCode/file/Git functionality and loopback protections.
+- **Cloud projects are disabled on the server.** The owned control-plane API, PostgreSQL schema/repository and signed worker integration client are present; an actual isolated worker, cloud execution/file/session integration, quotas and live acceptance are still required before activation. No cloud resources were provisioned.
+
+Start here for exact manual actions and limitations:
+
+1. [Account, local and cloud setup guide](docs/ACCOUNTS-LOCAL-CLOUD-SETUP.md) — existing Vercel/Neon configuration, trusted origins, emails/cookies, real acceptance, browser backups, migrations and cloud activation gates.
+2. [Delivery analysis and validation](docs/ACCOUNTS-LOCAL-CLOUD-DELIVERY.md) — implementation versus mocks/live verification and remaining engineering.
+3. [Pre-implementation plan](docs/ACCOUNTS-AND-PROJECT-MODES-PLAN.md).
+
+For browser-local editing only, run `npm ci && npm run dev` and open `/browser-projects`. For local account testing, copy `.env.example` to `.env.local`, set the actual **public** Neon Auth URL and authorize the local origin in Neon. Never put database/model/worker secrets in `VITE_*` variables.
+
 ## Start locally
 
 Requirements: Node **22.12+**, npm, Git, OpenCode CLI on the backend PATH, and a reachable configured provider. SDK and tested CLI: **1.19.5**; SDK version does not establish the installed CLI version.
@@ -60,7 +75,7 @@ ATLAS_DATABASE_MIGRATE=1 npm run server:start
 # After applying the approved schema, restart without migration opt-in.
 ```
 
-Do not use production Neon as a disposable acceptance target. Remote PostgreSQL has protocol-level tests but **no live remote integration validation** in this environment. The Vercel SPA deployment cannot host the persistent local execution engine; do not publicly route `/api` to it. Neon Auth URLs do not activate Atlas account forms by themselves.
+Do not use production Neon as a disposable acceptance target. Remote PostgreSQL has protocol-level tests but **no live remote integration validation** in this environment. The Vercel SPA deployment cannot host the persistent local execution engine; do not publicly route `/api` to it. The account client is now wired, but Neon trusted origins, verification/email policy and compatible cookies still need live acceptance.
 
 ## Security / limits
 
@@ -69,7 +84,7 @@ Do not use production Neon as a disposable acceptance target. Remote PostgreSQL 
 - Git uses argument arrays/literal pathspecs, no pager/hooks/fsmonitor/external diff/text conversion, bounded output/deadlines, and refuses unsafe filters/includes, external worktrees/object stores and metadata links before status/index work. Review is capped at 100 entries/1 MiB combined diff; Git metadata inspection is capped at 10,000 entries. Unsupported binary/mode-only/conflicted states can require local Git tools.
 - One active coding operation per project. Manual file/Git mutations are blocked while running or cancellation is unconfirmed. A native acknowledgement **and idle state** are required before cancellation is confirmed. No automatic prompt replay occurs on engine restart.
 - Atlas does not sandbox the agent or hostile local processes. OpenCode and tools use the operator's OS permissions; external filesystem races, malicious generated code and descendant-process behavior require stronger OS isolation. Atomic individual writes do not make multi-file/Git/database operations one transaction.
-- Account signup/login/reset, billing, hosted execution, external connector management and permission-response UI remain honestly unsupported. Resolve OpenCode permission requests in its supported local environment. Do not expose the backend or dev proxy publicly.
+- Billing, hosted execution, external connector management and permission-response UI remain unsupported. Account signup/login/reset are implemented through Neon Auth; see the new setup guide for live-service acceptance. Resolve OpenCode permission requests in its supported local environment. Do not expose the backend or dev proxy publicly.
 
 ## Validation
 

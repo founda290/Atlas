@@ -7,6 +7,19 @@ export default defineConfig({
       name: 'atlas-local-execution-boundary',
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
+          if (req.url?.split('?')[0] === '/api/cloud') {
+            void import('./server/src/cloud/control.ts')
+              .then(({ cloudControl }) => cloudControl(req, res))
+              .catch(() => {
+                res.statusCode = 503
+                res.end(
+                  JSON.stringify({
+                    data: { error: { message: 'Cloud control plane unavailable.' } },
+                  }),
+                )
+              })
+            return
+          }
           if (req.url?.startsWith('/api/')) {
             const host = (req.headers.host ?? '').split(':')[0],
               peer = req.socket.remoteAddress

@@ -2,6 +2,10 @@ import { Component, useEffect, type ErrorInfo, type ReactNode } from 'react'
 import { createBrowserRouter, RouterProvider, Route, Routes, useLocation } from 'react-router-dom'
 import { AppShell, PublicLayout } from './components'
 import { PreferencesProvider } from './hooks/preferences'
+import { AccountProvider } from './hooks/account'
+import { ResetPasswordPage, AccountPanel } from './pages/AccountPage'
+import { BrowserProjectsPage } from './pages/BrowserProjectsPage'
+import { CloudProjectsPage } from './pages/CloudProjectsPage'
 import { AuthPage } from './pages/AuthPage'
 import { DocsPage } from './pages/DocsPage'
 import { IntegrationsPage, ManagedIntegrationsPage } from './pages/IntegrationsPage'
@@ -50,37 +54,44 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: boolean 
 }
 export function AppRoutes() {
   return (
-    <PreferencesProvider>
-      <RouteEffects />
-      <Routes>
-        <Route element={<PublicLayout />}>
-          <Route index element={<HomePage />} />
-          <Route path="features" element={<FeaturesPage />} />
-          <Route path="integrations" element={<IntegrationsPage />} />
-          <Route path="pricing" element={<PricingPage />} />
-          <Route path="docs" element={<DocsPage />} />
-          <Route path="docs/:articleId" element={<DocsPage />} />
-          <Route path="login" element={<AuthPage key="login" />} />
-          <Route path="signup" element={<AuthPage key="signup" signup />} />
-          {['400', '401', '403', '404', '408', '429', '500', '502', '503', 'offline'].map(
-            (code) => (
-              <Route key={code} path={code} element={<StatusPage code={code} />} />
-            ),
-          )}
-          <Route path="*" element={<StatusPage />} />
-        </Route>
-        <Route element={<AppShell />}>
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="projects" element={<ProjectsPage />} />
-          <Route path="projects/:projectId" element={<ProjectPage />} />
-          <Route path="projects/:projectId/editor" element={<ProjectEditorPage />} />
-          <Route path="projects/:projectId/sessions/:sessionId" element={<WorkspacePage />} />
-          <Route path="models" element={<ModelsPage />} />
-          <Route path="integrations/manage" element={<ManagedIntegrationsPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-        </Route>
-      </Routes>
-    </PreferencesProvider>
+    <AccountProvider>
+      <PreferencesProvider>
+        <RouteEffects />
+        <Routes>
+          <Route element={<PublicLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path="features" element={<FeaturesPage />} />
+            <Route path="integrations" element={<IntegrationsPage />} />
+            <Route path="pricing" element={<PricingPage />} />
+            <Route path="docs" element={<DocsPage />} />
+            <Route path="docs/:articleId" element={<DocsPage />} />
+            <Route path="login" element={<AuthPage key="login" />} />
+            <Route path="reset-password" element={<ResetPasswordPage />} />
+            <Route path="signup" element={<AuthPage key="signup" signup />} />
+            {['400', '401', '403', '404', '408', '429', '500', '502', '503', 'offline'].map(
+              (code) => (
+                <Route key={code} path={code} element={<StatusPage code={code} />} />
+              ),
+            )}
+            <Route path="*" element={<StatusPage />} />
+          </Route>
+          <Route element={<AppShell />}>
+            <Route path="account" element={<AccountPanel />} />
+            <Route path="browser-projects" element={<BrowserProjectsPage />} />
+            <Route path="browser-projects/:browserId" element={<BrowserProjectsPage />} />
+            <Route path="cloud-projects" element={<CloudProjectsPage />} />
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="projects" element={<ProjectsPage />} />
+            <Route path="projects/:projectId" element={<ProjectPage />} />
+            <Route path="projects/:projectId/editor" element={<ProjectEditorPage />} />
+            <Route path="projects/:projectId/sessions/:sessionId" element={<WorkspacePage />} />
+            <Route path="models" element={<ModelsPage />} />
+            <Route path="integrations/manage" element={<ManagedIntegrationsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
+        </Routes>
+      </PreferencesProvider>
+    </AccountProvider>
   )
 }
 const router = createBrowserRouter([{ path: '*', element: <AppRoutes /> }])
